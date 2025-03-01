@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://creuxqcu158ju"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_7jeku"]
+
+[node name="Player" type="Node3D"]
+
+[node name="CharacterBody3D" type="CharacterBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_7jeku")
