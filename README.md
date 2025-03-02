@@ -56,7 +56,7 @@ We welcome contributions! Here’s how you can help:
 2. Create a new branch for your feature/bugfix.
 3. Submit a pull request.
 
-[//]: <> (Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for more details.)
+<!-- Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for more details. -->
 
 ---
 
@@ -84,4 +84,4 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 Have questions or want to collaborate? Reach out to me at:  
 📧 [degi.nandor@gmail.com](mailto:degi.nandor@gmail.com)  
-[//]: <> (🌐 [Your Portfolio Website](https://your-portfolio.com))
+<!-- 🌐 [Your Portfolio Website](https://your-portfolio.com) -->

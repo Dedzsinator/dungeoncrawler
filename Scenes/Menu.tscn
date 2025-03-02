@@ -1,0 +1,38 @@
+[gd_scene load_steps=2 format=3 uid="uid://dg8sqwuhtc3kk"]
+
+[ext_resource type="Script" path="res://Scripts/canvas_layer.gd" id="1_a1yye"]
+
+[node name="Menu" type="Node2D"]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+script = ExtResource("1_a1yye")
+
+[node name="Name" type="Label" parent="CanvasLayer"]
+offset_left = 496.0
+offset_top = 24.0
+offset_right = 631.0
+offset_bottom = 47.0
+text = "Dungeon Crawler"
+
+[node name="Playbtn" type="Button" parent="CanvasLayer"]
+offset_left = 549.0
+offset_top = 222.0
+offset_right = 590.0
+offset_bottom = 253.0
+text = "Play"
+
+[node name="QuitBtn" type="Button" parent="CanvasLayer"]
+offset_left = 558.0
+offset_top = 567.0
+offset_right = 600.0
+offset_bottom = 598.0
+text = "Quit"
+
+[node name="Background" type="TextureRect" parent="CanvasLayer"]
+offset_left = 373.0
+offset_top = 213.0
+offset_right = 413.0
+offset_bottom = 253.0
+
+[connection signal="pressed" from="CanvasLayer/Playbtn" to="CanvasLayer" method="_on_playbtn_pressed"]
+[connection signal="pressed" from="CanvasLayer/QuitBtn" to="CanvasLayer" method="_on_quit_btn_pressed"]
