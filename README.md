@@ -25,55 +25,63 @@ Welcome to *Dungeon Crawler*, a visually stunning 3D dungeon crawler built in *G
 
 W.I.P.
 
-```markdown
-
 ---
 
 ## *🚀 Getting Started*
+
 ### *Prerequisites*
+
 - Godot Engine 4.0+
 - Blender/MagicaVoxel for asset creation
 - Git for version control
 
 ### *Installation*
+
 1. Clone the repository:
-   
+
+   ```bash
    git clone https://github.com/Dedzsinator/dungeoncrawler.git
-   
+   ```
+
 2. Open the project in Godot Engine.
 3. Run the main.tscn scene to play the game.
 
 ---
 
 ## *🛠️ Contributing*
+
 We welcome contributions! Here’s how you can help:
+
 1. Fork the repository.
 2. Create a new branch for your feature/bugfix.
 3. Submit a pull request.
 
-[comment]: Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
+[//]: <> (Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for more details.)
 
 ---
 
 ## *📷 Screenshots*
+
 W.I.P.
 
 ---
 
 ## *📜 License*
+
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-##*🙏 Acknowledgments**
+## *🙏 Acknowledgments**
+
 - *Godot Engine* for an amazing open-source game engine.
 - *MagicaVoxel* for voxel art tools.
 - *Obsidian* for project management.
 
 ---
 
-##*📞 Contact**
+## *📞 Contact**
+
 Have questions or want to collaborate? Reach out to me at:  
 📧 [degi.nandor@gmail.com](mailto:degi.nandor@gmail.com)  
-[comment]:🌐 [Your Portfolio Website](https://your-portfolio.com)
-```
+[//]: <> (🌐 [Your Portfolio Website](https://your-portfolio.com))
