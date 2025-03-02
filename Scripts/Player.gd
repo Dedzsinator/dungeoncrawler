@@ -3,6 +3,29 @@ extends CharacterBody3D
 @export var speed: float = 5.0
 @export var jump_force: float = 10.0
 @export var gravity: float = 20.0
+@export var mouse_sensitivity: float = 0.1
+@export var max_pitch: float = 90.0
+@export var min_pitch: float = -90.0
+
+var yaw: float = 0.0
+var pitch: float = 0.0
+
+func _ready() -> void:
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+
+func _exit_tree() -> void:
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		yaw -= event.relative.x * mouse_sensitivity
+		pitch -= event.relative.y * mouse_sensitivity
+
+		pitch = clamp(pitch, min_pitch, max_pitch)
+
+		rotation_degrees.y = yaw
+	
+	$Camera3D.rotation_degrees.x = pitch
 
 func _physics_process(delta: float) -> void:
 	var inp_dir = Vector3.ZERO
