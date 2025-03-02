@@ -12,7 +12,6 @@ func _ready() -> void:
 func generate_dungeon() -> void:
 	dungeon_grid = []
 	for x in range(grid_size.x):
-		for y in range(grid_size.y):
 			dungeon_grid.append([])
 			for y in range(grid_size.y):
 				dungeon_grid[x].append(null)
