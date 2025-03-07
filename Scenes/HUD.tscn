@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3 uid="uid://oejcvblpcxe1"]
+
+[ext_resource type="Script" path="res://Scripts/hud.gd" id="1_ryc6k"]
+
+[node name="Hud" type="Node2D"]
+script = ExtResource("1_ryc6k")
+
+[node name="HealthContainer" type="HBoxContainer" parent="."]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="ActiveWeapons" type="HBoxContainer" parent="."]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="InventoryContainer" type="GridContainer" parent="."]
+offset_right = 40.0
+offset_bottom = 40.0
