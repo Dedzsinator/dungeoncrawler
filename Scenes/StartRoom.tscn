@@ -1,0 +1,39 @@
+[gd_scene load_steps=5 format=3 uid="uid://doefi8047hkm7"]
+
+[ext_resource type="PackedScene" uid="uid://bbx10w54uel8y" path="res://Scenes/Room 1.fbx" id="1_vin6y"]
+[ext_resource type="Script" path="res://Scripts/Room.gd" id="1_wqrt3"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ouka7"]
+size = Vector3(7.91669, 5, 7.47162)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(8, 0.5, 8)
+
+[node name="StartRoom" type="Node3D"]
+script = ExtResource("1_wqrt3")
+
+[node name="Room 1" parent="." instance=ExtResource("1_vin6y")]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0, 0, 0)
+
+[node name="ConnectionPoints" type="Node3D" parent="."]
+
+[node name="east" type="Marker3D" parent="ConnectionPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.72881, 1, 4.13282)
+
+[node name="SpawnPoint" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 1, 4)
+
+[node name="RoomDetector" type="Area3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RoomDetector"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.0369, 2.5, 4.04257)
+shape = SubResource("BoxShape3D_ouka7")
+
+[node name="FloorCollision" type="StaticBody3D" parent="."]
+
+[node name="Floor" type="CollisionShape3D" parent="FloorCollision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 4)
+shape = SubResource("BoxShape3D_floor")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 1.91876, 4.95329, 3.82616)

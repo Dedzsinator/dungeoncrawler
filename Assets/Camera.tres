@@ -1,0 +1,18 @@
+[gd_resource type="Environment" load_steps=4 format=3 uid="uid://c1k154pwpmeeo"]
+
+[ext_resource type="Shader" path="res://Assets/Sky.gdshader" id="1_s2nfw"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_gp8wh"]
+shader = ExtResource("1_s2nfw")
+
+[sub_resource type="Sky" id="Sky_hkq42"]
+sky_material = SubResource("ShaderMaterial_gp8wh")
+
+[resource]
+background_mode = 2
+sky = SubResource("Sky_hkq42")
+ambient_light_source = 3
+ambient_light_color = Color(0.352941, 0.831373, 1, 1)
+ambient_light_energy = 1.44
+reflected_light_source = 2
+tonemap_mode = 2

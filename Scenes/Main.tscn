@@ -1,25 +1,13 @@
-[gd_scene load_steps=5 format=3 uid="uid://t8475y1wq1v5"]
+[gd_scene load_steps=2 format=3 uid="uid://t8475y1wq1v5"]
 
 [ext_resource type="Script" path="res://Scripts/main.gd" id="1_ka36v"]
-[ext_resource type="PackedScene" uid="uid://creuxqcu158ju" path="res://Scenes/Player.tscn" id="1_pgvsc"]
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_pvjly"]
-size = Vector3(11.8542, 0.0256348, 8.30231)
-
-[sub_resource type="BoxMesh" id="BoxMesh_pbebu"]
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1_ka36v")
 
-[node name="Player" parent="." instance=ExtResource("1_pgvsc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.04404, 0)
-
-[node name="StaticBody3D" type="StaticBody3D" parent="."]
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.29965, -0.487183, -1.37076)
-shape = SubResource("BoxShape3D_pvjly")
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D"]
-transform = Transform3D(11.4657, 0, 0, 0, 0.0932642, 0, 0, 0, 7.9152, -1.25164, 0, -0.781091)
-mesh = SubResource("BoxMesh_pbebu")
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.25, 0.433013, 0, 0.866025, 0.5, -0.5, -0.433013, 0.75, 0, 18.0271, 0)
+visible = false
+light_color = Color(1, 0.95, 0.9, 1)
+light_energy = 10.823
+shadow_enabled = true
