@@ -1,18 +1,32 @@
 [gd_scene load_steps=2 format=3 uid="uid://oejcvblpcxe1"]
 
-[ext_resource type="Script" path="res://Scripts/hud.gd" id="1_ryc6k"]
+[ext_resource type="Script" path="res://Scripts/HUD.gd" id="1_u33wk"]
 
-[node name="Hud" type="Node2D"]
-script = ExtResource("1_ryc6k")
+[node name="Control" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_u33wk")
 
-[node name="HealthContainer" type="HBoxContainer" parent="."]
+[node name="HealthBar" type="ProgressBar" parent="."]
+layout_mode = 0
+offset_right = 4.0
+offset_bottom = 27.0
+
+[node name="HealthLabel" type="Label" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="WeaponSlots" type="HBoxContainer" parent="."]
+layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="ActiveWeapons" type="HBoxContainer" parent="."]
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="InventoryContainer" type="GridContainer" parent="."]
+[node name="PassiveItems" type="HBoxContainer" parent="."]
+layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0

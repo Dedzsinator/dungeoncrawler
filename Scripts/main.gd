@@ -17,9 +17,30 @@ var player = null
 
 func _ready():
 	print("=== GAME INITIALIZATION ===")
+
+	# Register ui_help action if it doesn't exist
+	if not InputMap.has_action("ui_help"):
+		InputMap.add_action("ui_help")
+		var event = InputEventKey.new()
+		event.keycode = KEY_F1
+		InputMap.action_add_event("ui_help", event)
+		print("Added ui_help action mapped to F1 key")
+
+	var hud = preload("res://Scenes/HUD.tscn").instantiate()
+	add_child(hud)
+
+	var enemy_manager = preload("res://Scripts/EnemyManager.gd").new()
+	add_child(enemy_manager)
 	
+	if not InputMap.has_action("switch_weapon"):
+		InputMap.add_action("switch_weapon")
+		var event = InputEventKey.new()
+		event.keycode = KEY_SHIFT
+		InputMap.action_add_event("switch_weapon", event)
+		print("Added switch_weapon action mapped to Left Shift key")
+
 	# EMERGENCY DEBUG: Skip dungeon generation and just spawn the player in a start room
-	if false:  # Keep this false to enable dungeon generation
+	if false: # Keep this false to enable dungeon generation
 		var start_room = load(START_ROOM_SCENE).instantiate()
 		add_child(start_room)
 		start_room.name = "StartRoom"
@@ -47,7 +68,7 @@ func _ready():
 			print("WARNING: No SpawnPoint found! Creating one...")
 			var spawn_point = Marker3D.new()
 			spawn_point.name = "SpawnPoint"
-			spawn_point.position = Vector3(4, 1, 4)  # Match your StartRoom's spawn point position
+			spawn_point.position = Vector3(4, 1, 4) # Match your StartRoom's spawn point position
 			start_room.add_child(spawn_point)
 			print("Created SpawnPoint at: " + str(spawn_point.global_position))
 	
@@ -99,7 +120,7 @@ func generate_dungeon():
 func create_linear_dungeon_path(start_room):
 	var current_room = start_room
 	var remaining_rooms = NUM_GENERIC_ROOMS
-	var previous_exit_dir = ""  # Track the last used exit direction
+	var previous_exit_dir = "" # Track the last used exit direction
 	
 	# For a linear path, we'll use a fixed direction if possible (east)
 	var preferred_direction = "east"
@@ -116,7 +137,7 @@ func create_linear_dungeon_path(start_room):
 		var exit_dir = preferred_direction
 		if not exits.has(exit_dir):
 			# Fall back to any available exit, but try to avoid the direction we came from
-			exits.erase(get_opposite_direction(previous_exit_dir))  # Don't go back the way we came
+			exits.erase(get_opposite_direction(previous_exit_dir)) # Don't go back the way we came
 			if exits.is_empty():
 				print("No valid exits available in room " + current_room.name)
 				break
@@ -211,7 +232,7 @@ func add_boss_room(last_corridor, previous_exit_dir):
 func get_opposite_direction(direction: String) -> String:
 	match direction:
 		"north": return "south"
-		"south": return "north" 
+		"south": return "north"
 		"east": return "west"
 		"west": return "east"
 	return ""
@@ -250,7 +271,7 @@ func ensure_room_has_collision(room: Node3D):
 	var floor_box = BoxShape3D.new()
 	
 	# Get room size based on type
-	var room_size = Vector3(8, 0.5, 8)  # Default size
+	var room_size = Vector3(8, 0.5, 8) # Default size
 	
 	if room.name.begins_with("Corridor"):
 		room_size = Vector3(8, 0.5, 2)
@@ -259,12 +280,12 @@ func ensure_room_has_collision(room: Node3D):
 	
 	floor_box.size = room_size
 	floor_shape.shape = floor_box
-	floor_shape.position = Vector3(room_size.x/2, 0, room_size.z/2)
+	floor_shape.position = Vector3(room_size.x / 2, 0, room_size.z / 2)
 	collision_bounds.add_child(floor_shape)
 
 # Advanced function to connect and align rooms, handling rotation
 func connect_and_align_rooms(room_a, room_b, exit_dir, entry_dir) -> bool:
-	print("Connecting " + room_a.name + " to " + room_b.name + 
+	print("Connecting " + room_a.name + " to " + room_b.name +
 		  " using " + exit_dir + " -> " + entry_dir)
 		
 	# Verify if ConnectionPoints node exists in both rooms
@@ -321,10 +342,10 @@ func connect_and_align_rooms(room_a, room_b, exit_dir, entry_dir) -> bool:
 func get_rotation_angle(exit_dir: String, entry_dir: String) -> float:
 	# Define the cardinal directions as angles (in radians)
 	var dir_angles = {
-		"north": PI,        # -Z axis (180 degrees)
-		"south": 0,         # +Z axis (0 degrees)
-		"east": -PI/2,      # +X axis (-90 degrees)
-		"west": PI/2        # -X axis (90 degrees)
+		"north": PI, # -Z axis (180 degrees)
+		"south": 0, # +Z axis (0 degrees)
+		"east": - PI / 2, # +X axis (-90 degrees)
+		"west": PI / 2 # -X axis (90 degrees)
 	}
 	
 	# Calculate the needed rotation:
@@ -384,8 +405,8 @@ func get_room_bounds(room: Node3D) -> Dictionary:
 			var global_pos = shape.global_position
 			
 			return {
-				"min": global_pos - size/2,
-				"max": global_pos + size/2
+				"min": global_pos - size / 2,
+				"max": global_pos + size / 2
 			}
 	
 	# Try to get bounds from floor collision as fallback
@@ -399,8 +420,8 @@ func get_room_bounds(room: Node3D) -> Dictionary:
 			
 			# For floor shapes, expand vertically to create a proper volume
 			return {
-				"min": Vector3(global_pos.x - size.x/2, global_pos.y, global_pos.z - size.z/2),
-				"max": Vector3(global_pos.x + size.x/2, global_pos.y + 5, global_pos.z + size.z/2)
+				"min": Vector3(global_pos.x - size.x / 2, global_pos.y, global_pos.z - size.z / 2),
+				"max": Vector3(global_pos.x + size.x / 2, global_pos.y + 5, global_pos.z + size.z / 2)
 			}
 	
 	# As a last resort, use a default size around the room's center
@@ -484,13 +505,13 @@ func debug_player_physics():
 	# Check collisions below player
 	var space_state = get_world_3d().direct_space_state
 	var query = PhysicsRayQueryParameters3D.create(
-		player.global_position, 
+		player.global_position,
 		player.global_position + Vector3(0, -2, 0)
 	)
 	var result = space_state.intersect_ray(query)
 	
 	if result:
-		print("Ray hit: " + str(result.collider.name) + " at distance: " + 
+		print("Ray hit: " + str(result.collider.name) + " at distance: " +
 			  str(result.position.distance_to(player.global_position)))
 	else:
 		print("No collision detected below player!")
@@ -505,9 +526,14 @@ func _process(delta):
 		get_tree().quit()
 	
 	# Press F1 to visualize room connections
-	if Input.is_action_just_pressed("ui_help"):  # F1 key
+	if Input.is_action_just_pressed("ui_help"): # F1 key
 		debug_draw_room_bounds()
 		debug_draw_room_connections()
+
+	# This is where the error is - we need to access inventory through player
+	if Input.is_action_just_pressed("switch_weapon"):
+		if player and player.inventory:
+			player.inventory.handle_input_action("switch_weapon")
 
 func debug_draw_room_bounds():
 	# Clear previous debug visualization
@@ -523,7 +549,7 @@ func debug_draw_room_bounds():
 			continue
 			
 		var size = bounds["max"] - bounds["min"]
-		var center = bounds["min"] + size/2
+		var center = bounds["min"] + size / 2
 		
 		var box = BoxMesh.new()
 		box.size = size
@@ -536,7 +562,7 @@ func debug_draw_room_bounds():
 		# Use a transparent material
 		var material = StandardMaterial3D.new()
 		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		material.albedo_color = Color(1, 0, 0, 0.2)  # Red with transparency
+		material.albedo_color = Color(1, 0, 0, 0.2) # Red with transparency
 		mesh_instance.material_override = material
 		
 		room.add_child(mesh_instance)
@@ -550,7 +576,7 @@ func debug_draw_room_connections():
 	# Draw lines between connected rooms
 	for i in range(1, rooms.size()):
 		var room = rooms[i]
-		var prev_room = rooms[i-1]
+		var prev_room = rooms[i - 1]
 		
 		# Find connection points between these rooms
 		var entry_point = null
@@ -580,7 +606,7 @@ func draw_connection_line(point_a, point_b):
 	mi.add_to_group("debug_lines")
 	
 	var material = StandardMaterial3D.new()
-	material.albedo_color = Color(0, 1, 0)  # Green
+	material.albedo_color = Color(0, 1, 0) # Green
 	material.emission_enabled = true
 	material.emission = Color(0, 1, 0)
 	material.emission_energy = 1.0
