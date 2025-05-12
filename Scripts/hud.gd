@@ -1,11 +1,17 @@
 extends Control
 
-@onready var health_bar = $HealthBar
-@onready var health_label = $HealthLabel
+@onready var health_container = $HealthContainer
 @onready var weapon_slots = $WeaponSlots
 @onready var passive_items = $PassiveItems
 
 var player = null
+var heart_size = Vector2(32, 32)
+var heart_spacing = 4
+
+# Preload heart textures
+var full_heart_texture = preload("res://Assets/full_heart.png")
+var half_heart_texture = preload("res://Assets/half_heart.png")
+var empty_heart_texture = preload("res://Assets/empty_heart.png")
 
 func _ready():
 	# Set up anchors and margins
@@ -28,25 +34,36 @@ func _ready():
 	else:
 		print("ERROR: Player not found for HUD")
 
-func _on_player_health_changed(current, maximum):
-	_update_health_display(current, maximum)
+func _on_player_health_changed(current_half_hearts, max_half_hearts):
+	_update_health_display(current_half_hearts, max_half_hearts)
 
-func _update_health_display(current, maximum):
-	# Update progress bar
-	health_bar.max_value = maximum
-	health_bar.value = current
+func _update_health_display(current_half_hearts, max_half_hearts):
+	# Clear existing hearts
+	for child in health_container.get_children():
+		child.queue_free()
 	
-	# Update label
-	health_label.text = str(int(current)) + " / " + str(int(maximum))
+	# Calculate number of total hearts needed
+	var max_hearts = max_half_hearts / 2
 	
-	# Change color based on health percentage
-	var health_percent = current / maximum
-	if health_percent < 0.3:
-		health_bar.modulate = Color(1, 0, 0) # Red when low
-	elif health_percent < 0.6:
-		health_bar.modulate = Color(1, 1, 0) # Yellow when medium
-	else:
-		health_bar.modulate = Color(0, 1, 0) # Green when high
+	# Create heart sprites
+	for i in range(max_hearts):
+		var heart = TextureRect.new()
+		heart.expand = true
+		heart.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		heart.custom_minimum_size = heart_size
+		heart.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		
+		# Determine heart state (full, half, or empty)
+		var remaining_half_hearts = current_half_hearts - (i * 2)
+		
+		if remaining_half_hearts >= 2:
+			heart.texture = full_heart_texture
+		elif remaining_half_hearts == 1:
+			heart.texture = half_heart_texture
+		else:
+			heart.texture = empty_heart_texture
+		
+		health_container.add_child(heart)
 
 func _on_weapon_switched(index):
 	_update_weapon_display()

@@ -2,19 +2,24 @@ extends CharacterBody3D
 class_name Enemy
 
 # Base enemy properties
-@export var max_health: float = 100.0
+@export var max_health: int = 40
 @export var movement_speed: float = 2.0
-@export var attack_damage: float = 10.0
+@export var attack_damage: int = 1 # Damage in half-hearts (1 = half heart, 2 = full heart)
 @export var attack_cooldown: float = 1.5
 @export var detection_radius: float = 10.0
 @export var attack_radius: float = 1.5
+@export var knockback_force: float = 5.0
+@export var knockback_duration: float = 0.3
 
 # Current state
-var health: float
+var health: int
 var can_attack: bool = true
 var player: CharacterBody3D = null
 var state: String = "idle"
 var nav_agent: NavigationAgent3D
+var is_being_knocked_back: bool = false
+var knockback_timer: float = 0.0
+var knockback_direction: Vector3 = Vector3.ZERO
 
 # Visual feedback
 @onready var model: MeshInstance3D = $MeshInstance3D
@@ -24,7 +29,8 @@ var nav_agent: NavigationAgent3D
 signal enemy_died(enemy)
 
 func _ready():
-    # Initialize variables
+    # Initialize variables - randomize health between 30-50
+    max_health = randi_range(30, 50)
     health = max_health
     
     # Setup navigation
@@ -78,6 +84,18 @@ func _ready():
     update_timer.start()
 
 func _physics_process(delta):
+    # Handle being knocked back
+    if is_being_knocked_back:
+        knockback_timer -= delta
+        if knockback_timer <= 0:
+            is_being_knocked_back = false
+        else:
+            # Apply knockback velocity
+            velocity = knockback_direction * knockback_force
+            move_and_slide()
+            return
+    
+    # Regular state handling if not knocked back
     match state:
         "idle":
             # Just stand there
@@ -174,6 +192,14 @@ func perform_attack():
 
 func take_damage(amount):
     health -= amount
+    
+    # Apply knockback effect
+    if player:
+        is_being_knocked_back = true
+        knockback_timer = knockback_duration
+        knockback_direction = (global_position - player.global_position).normalized()
+        knockback_direction.y = 0.3 # Add slight upward component
+        velocity = knockback_direction * knockback_force
     
     # Visual feedback
     if has_node("HitParticles"):

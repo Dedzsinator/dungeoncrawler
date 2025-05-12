@@ -6,16 +6,19 @@ extends CharacterBody3D
 @export var mouse_sensitivity: float = 0.1
 @export var max_pitch: float = 90.0
 @export var min_pitch: float = -90.0
-@export var max_health: float = 100.0
+@export var max_hearts: int = 3
+@export var invincibility_time: float = 1.0
 
 # Health system
-var health: float = max_health
-signal health_changed(current_health, max_health)
+var hearts: int = max_hearts
+var half_hearts: int = hearts * 2
+signal health_changed(current_half_hearts, max_half_hearts)
 signal player_died
 
 # Combat variables
 var damage_cooldown: float = 0.5
 var can_take_damage: bool = true
+var invincibility_timer: float = 0.0
 
 # Inventory system
 var inventory = null
@@ -43,6 +46,17 @@ var pitch: float = 0.0
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	
+	# Initialize player model
+	var player_model = preload("res://Assets/Player.fbx").instantiate()
+	player_model.name = "PlayerModel"
+	add_child(player_model)
+	
+	# Apply texture to the player model
+	if player_model.has_node("MeshInstance3D"):
+		var material = StandardMaterial3D.new()
+		material.albedo_texture = preload("res://Assets/textures/HeroBase.png")
+		player_model.get_node("MeshInstance3D").material_override = material
+	
 	# Initialize weapon mount point
 	var weapon_mount = Node3D.new()
 	weapon_mount.name = "WeaponMount"
@@ -57,14 +71,19 @@ func _ready() -> void:
 	# Initialize inventory
 	inventory = preload("res://Scripts/PlayerInventory.gd").new()
 	add_child(inventory)
-	inventory.connect("item_added", _on_item_added)
-	inventory.connect("item_removed", _on_item_removed)
-	inventory.connect("active_weapon_changed", _on_weapon_switched)
-	inventory.connect("active_weapon_used", _on_weapon_used)
 	
-	# Start with base health
-	health = max_health
-	emit_signal("health_changed", health, max_health)
+	# Connect signals
+	if inventory.has_signal("active_weapon_changed"):
+		inventory.connect("active_weapon_changed", _update_visible_weapon)
+		inventory.connect("weapon_added", _on_weapon_added)
+	
+	# Add the player to the "player" group for targeting
+	add_to_group("player")
+	
+	# Start with base health (3 hearts = 6 half hearts)
+	hearts = max_hearts
+	half_hearts = hearts * 2
+	emit_signal("health_changed", half_hearts, max_hearts * 2)
 	
 	# Set up camera properly
 	$Camera3D.position = camera_head_position
@@ -206,21 +225,30 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 # Health system methods
-func change_health(amount: float) -> void:
+func change_health(amount: int) -> void:
 	# Handle damage cooldown
 	if amount < 0 and not can_take_damage:
 		return
-		
-	health = clamp(health + amount, 0, max_health)
-	emit_signal("health_changed", health, max_health)
+	
+	# Convert amount to half-hearts
+	var half_heart_amount = amount
+	
+	# Update half hearts
+	half_hearts = clamp(half_hearts + half_heart_amount, 0, max_hearts * 2)
+	
+	# Update hearts (integer division)
+	hearts = half_hearts / 2
+	
+	# Emit signal with half_hearts
+	emit_signal("health_changed", half_hearts, max_hearts * 2)
 	
 	if amount < 0:
 		# Hit effect
-		print("Player took " + str(-amount) + " damage. Health: " + str(health))
+		print("Player took " + str(-amount) + " damage. Half hearts: " + str(half_hearts))
 		_damage_feedback()
 	
 	# Death condition
-	if health <= 0:
+	if half_hearts <= 0:
 		die()
 
 func _damage_feedback():
@@ -229,18 +257,28 @@ func _damage_feedback():
 	tween.tween_property($Camera3D, "position:y", camera_head_position.y - 0.2, 0.1)
 	tween.tween_property($Camera3D, "position:y", camera_head_position.y, 0.1)
 	
-	# Damage cooldown
+	# Start invincibility frames
 	can_take_damage = false
-	await get_tree().create_timer(damage_cooldown).timeout
+	
+	# Visual indicator of invincibility - flash the player
+	var flash_tween = create_tween()
+	flash_tween.set_loops(5)
+	flash_tween.tween_property(self, "modulate:a", 0.5, 0.1)
+	flash_tween.tween_property(self, "modulate:a", 1.0, 0.1)
+	
+	# Reset after invincibility time
+	await get_tree().create_timer(invincibility_time).timeout
 	can_take_damage = true
+	modulate.a = 1.0
 
-func change_max_health(amount: float) -> void:
-	max_health += amount
+func change_max_health(amount: int) -> void:
+	max_hearts += amount
 	if amount > 0:
-		# If increasing max health, also heal by that amount
-		health += amount
-	health = clamp(health, 0, max_health)
-	emit_signal("health_changed", health, max_health)
+		# If increasing max hearts, also heal by that amount
+		half_hearts += amount * 2
+	half_hearts = clamp(half_hearts, 0, max_hearts * 2)
+	hearts = half_hearts / 2
+	emit_signal("health_changed", half_hearts, max_hearts * 2)
 
 func die() -> void:
 	print("Player died!")
@@ -315,3 +353,10 @@ func toggle_camera_view() -> void:
 func _on_interaction_area_body_entered(body):
 	if body.is_in_group("item_pickup"):
 		body.interact(self)
+func _on_weapon_added(weapon, slot: int):
+	# Handle the event when a weapon is added to the inventory
+	print("Added " + weapon.name + " to inventory slot " + str(slot))
+	
+	# If this is the active weapon slot, update the visible weapon
+	if slot == inventory.current_active_slot:
+		_update_visible_weapon()

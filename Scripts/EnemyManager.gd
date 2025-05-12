@@ -7,7 +7,8 @@ var ENEMY_SCENES = {
 	"explosive": preload("res://Scripts/ExplosiveEnemy.gd"),
 	"swarm": preload("res://Scripts/SwarmEnemy.gd"),
 	"trail": preload("res://Scripts/TrailEnemy.gd"),
-	"boss": preload("res://Scripts/BossEnemy.gd")
+	"boss": preload("res://Scripts/BossEnemy.gd"),
+	"skeleton": preload("res://Scripts/SkeletonEnemy.gd")
 }
 
 # Spawn parameters 
@@ -19,8 +20,10 @@ var ENEMY_SCENES = {
 var active_enemies = []
 var total_enemies_spawned = 0
 var boss_spawned = false
+var current_fight_room = null
 
 signal enemy_died(enemy)
+signal all_enemies_defeated(room)
 
 func _ready():
 	# Subscribe to room detection events
@@ -63,6 +66,11 @@ func spawn_boss(position: Vector3) -> BossEnemy:
 	return boss
 
 func spawn_enemies_in_room(room: Node3D):
+	# Check if this is a locked fight room being handled by main.gd
+	if room.has_meta("fighting"):
+		print("Room " + room.name + " is already in a fight sequence, skipping enemy spawning")
+		return
+		
 	# Don't respawn enemies in rooms
 	if room.has_meta("enemies_spawned"):
 		return
@@ -75,6 +83,11 @@ func spawn_enemies_in_room(room: Node3D):
 		var boss_spawn_point = room.get_node_or_null("BossSpawnPoint")
 		var spawn_pos = boss_spawn_point.global_position if boss_spawn_point else room.global_position + Vector3(0, 1, 0)
 		spawn_boss(spawn_pos)
+		return
+		
+	# Skip normal enemy spawning in fight rooms (Room 1, Room 2, etc.)
+	if room.name.begins_with("Room") or room.name.begins_with("Long"):
+		print("Room " + room.name + " is a fight room, enemies will be spawned by fight system")
 		return
 		
 	# Regular room - spawn random enemies
@@ -100,7 +113,7 @@ func spawn_enemies_in_room(room: Node3D):
 		var spawn_pos = room.global_position + Vector3(room_size.x / 2 + x, 1, room_size.z / 2 + z)
 		
 		# Choose random enemy type
-		var enemy_types = ["melee", "ranged", "explosive", "swarm", "trail"]
+		var enemy_types = ["melee", "ranged", "explosive", "swarm", "trail", "skeleton"]
 		var enemy_type = enemy_types[randi() % enemy_types.size()]
 		
 		# Spawn the enemy
@@ -109,11 +122,15 @@ func spawn_enemies_in_room(room: Node3D):
 	print("Spawned " + str(num_enemies) + " enemies in " + room.name)
 
 func _on_player_entered_room(room: Node3D):
-	spawn_enemies_in_room(room)
+	# Only handle non-fight rooms (corridors, etc.)
+	if not (room.name.begins_with("Room") or room.name.begins_with("Long")):
+		spawn_enemies_in_room(room)
 
 func _on_enemy_died(enemy: Enemy):
 	# Remove from active enemies list
 	active_enemies.erase(enemy)
+	
+	print("Enemy died: " + enemy.name + ". Remaining: " + str(active_enemies.size()))
 	
 	# Forward the signal
 	emit_signal("enemy_died", enemy)
@@ -122,10 +139,21 @@ func _on_enemy_died(enemy: Enemy):
 	if enemy is BossEnemy and boss_spawned:
 		boss_spawned = false
 		print("Boss defeated!")
-		# Trigger victory condition or next level
+		
+	# Check if all enemies in a fight room are defeated
+	if current_fight_room and active_enemies.size() == 0:
+		emit_signal("all_enemies_defeated", current_fight_room)
+		current_fight_room = null
 
 func get_enemy_at_position(position: Vector3, radius: float = 1.0) -> Enemy:
 	for enemy in active_enemies:
 		if enemy.global_position.distance_to(position) <= radius:
 			return enemy
 	return null
+	
+func start_room_fight(room: Node3D):
+	# Set as current fight room
+	current_fight_room = room
+	print("EnemyManager tracking fight in room: " + room.name)
+	
+	# Room-specific fight tracking will happen in main.gd

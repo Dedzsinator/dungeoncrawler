@@ -5,15 +5,32 @@ const START_ROOM_SCENE = "res://Scenes/StartRoom.tscn"
 const BOSS_ROOM_SCENE = "res://Scenes/BossRoom.tscn"
 const GENERIC_ROOM_SCENE = "res://Scenes/Corridor.tscn"
 
+# More room type definitions for variety
+const ROOM_SCENES = {
+    "corridor": "res://Scenes/Corridor.tscn",
+    "corridor_l": "res://Scenes/CorridorL.tscn", # Will create these
+    "corridor_t": "res://Scenes/CorridorT.tscn", # Will create these
+    "corridor_x": "res://Scenes/CorridorX.tscn", # Will create these
+    "long_room_1": "res://Scenes/LongRoom1.tscn", # Will create these
+    "long_room_2": "res://Scenes/LongRoom2.tscn", # Will create these
+    "long_room_3": "res://Scenes/LongRoom3.tscn", # Will create these
+    "room_3": "res://Scenes/Room3.tscn", # Will create these
+    "room_4": "res://Scenes/Room4.tscn" # Will create these
+}
+
 # Number of generic rooms between start and boss rooms
 const NUM_GENERIC_ROOMS = 5
 
 # Reference to the player scene
 const PLAYER_SCENE = "res://Scenes/Player.tscn"
+const DOOR_SCENE = "res://Assets/Door.fbx"
 
 # Store room instances
 var rooms = []
 var player = null
+var active_enemies = []
+var locked_room = null
+var door_instances = []
 
 func _ready():
 	print("=== GAME INITIALIZATION ===")
@@ -76,6 +93,11 @@ func _ready():
 	spawn_player()
 	add_safety_floor()
 	
+	# Connect room signals for all rooms
+	for room in rooms:
+		if room.has_signal("player_entered") and not room.is_connected("player_entered", _on_player_entered_room):
+			room.connect("player_entered", _on_player_entered_room)
+	
 	# Visualize the room connections for debugging
 	debug_draw_room_connections()
 	debug_draw_room_bounds()
@@ -116,7 +138,26 @@ func generate_dungeon():
 	
 	print("Dungeon generation complete with " + str(rooms.size()) + " rooms")
 
-# New function to ensure more reliable room placement
+# Function to select a random room type for dungeon generation
+func get_random_room_type() -> String:
+	var room_types = ROOM_SCENES.keys()
+	var special_rooms = ["corridor_l", "corridor_t", "corridor_x"]
+	var normal_rooms = ["room_3", "room_4", "long_room_1", "long_room_2", "long_room_3"]
+	
+	# 60% chance of normal corridor, 20% chance of special corridor, 20% chance of room
+	var random_val = randf()
+	
+	if random_val < 0.6:
+		# Regular corridor
+		return "corridor"
+	elif random_val < 0.8:
+		# Special corridor (L, T, X)
+		return special_rooms[randi() % special_rooms.size()]
+	else:
+		# Room
+		return normal_rooms[randi() % normal_rooms.size()]
+
+# Create a more interesting dungeon with multiple room types
 func create_linear_dungeon_path(start_room):
 	var current_room = start_room
 	var remaining_rooms = NUM_GENERIC_ROOMS
@@ -143,31 +184,40 @@ func create_linear_dungeon_path(start_room):
 				break
 			exit_dir = exits[randi() % exits.size()]
 		
-		# Create corridor
-		var corridor = load(GENERIC_ROOM_SCENE).instantiate()
-		add_child(corridor)
-		corridor.name = "Corridor_" + str(NUM_GENERIC_ROOMS - remaining_rooms)
-		ensure_room_has_collision(corridor)
+		# Select a room type based on our improved logic
+		var room_type = get_random_room_type()
+		var room_scene_path = ROOM_SCENES[room_type]
+		print("Selected room type: " + room_type)
 		
-		# Get entry points for the corridor (we need the opposite of our exit)
+		# Create new room
+		var new_room = load(room_scene_path).instantiate()
+		add_child(new_room)
+		new_room.name = room_type.capitalize() + "_" + str(NUM_GENERIC_ROOMS - remaining_rooms)
+		ensure_room_has_collision(new_room)
+		
+		# Get entry points for the new room (we need the opposite of our exit)
 		var desired_entry = get_opposite_direction(exit_dir)
-		var corridor_entries = get_available_connection_points(corridor)
+		var room_entries = get_available_connection_points(new_room)
 		
-		if not corridor_entries.has(desired_entry):
-			print("Corridor doesn't have the needed entry point: " + desired_entry)
-			corridor.queue_free()
-			exits.erase(exit_dir)
-			continue
+		if not room_entries.has(desired_entry):
+			print("New room doesn't have the needed entry point: " + desired_entry)
+			# Try to find any valid entry point
+			if room_entries.is_empty():
+				print("Room has no entry points, can't connect")
+				new_room.queue_free()
+				exits.erase(exit_dir)
+				continue
+			desired_entry = room_entries[0]
 		
 		# Connect and align rooms
-		if connect_and_align_rooms(current_room, corridor, exit_dir, desired_entry):
-			rooms.append(corridor)
-			current_room = corridor
+		if connect_and_align_rooms(current_room, new_room, exit_dir, desired_entry):
+			rooms.append(new_room)
+			current_room = new_room
 			previous_exit_dir = exit_dir
 			remaining_rooms -= 1
 		else:
-			print("Failed to connect corridor")
-			corridor.queue_free()
+			print("Failed to connect new room")
+			new_room.queue_free()
 			exits.erase(exit_dir)
 			
 			if exits.is_empty():
@@ -277,6 +327,10 @@ func ensure_room_has_collision(room: Node3D):
 		room_size = Vector3(8, 0.5, 2)
 	elif room.name.begins_with("BossRoom"):
 		room_size = Vector3(12, 0.5, 12)
+	elif room.name.begins_with("LongRoom"):
+		room_size = Vector3(12, 0.5, 6) # Longer rooms
+	elif room.name.begins_with("Room"):
+		room_size = Vector3(10, 0.5, 10) # Regular rooms
 	
 	floor_box.size = room_size
 	floor_shape.shape = floor_box
@@ -430,6 +484,10 @@ func get_room_bounds(room: Node3D) -> Dictionary:
 		room_size = Vector3(8, 3, 2)
 	elif room.name.begins_with("BossRoom"):
 		room_size = Vector3(12, 5, 12)
+	elif room.name.begins_with("LongRoom"):
+		room_size = Vector3(12, 5, 6)
+	elif room.name.begins_with("Room"):
+		room_size = Vector3(10, 5, 10)
 	
 	return {
 		"min": room.global_position,
@@ -491,7 +549,183 @@ func _on_boss_room_entered(_room):
 	print("Player entered the boss room!")
 	# Implement boss fight logic or victory screen here
 
-# Debug helper function
+func _on_player_entered_room(entered_room):
+	print("Player entered room: " + entered_room.name)
+	
+	# Check if this is a big room that should trigger a fight
+	var is_big_room = entered_room.name.begins_with("Room") or entered_room.name.begins_with("Long")
+	
+	if is_big_room and not entered_room.has_meta("cleared"):
+		print("Starting fight sequence in " + entered_room.name)
+		start_fight_sequence(entered_room)
+	else:
+		print("Room already cleared or not a big room.")
+		
+func start_fight_sequence(room):
+	# Set current locked room
+	locked_room = room
+	room.set_meta("fighting", true)
+	
+	# Spawn doors at all exits
+	spawn_blocking_doors(room)
+	
+	# Spawn enemies
+	spawn_enemies_in_room(room)
+	
+	# Connect to the enemy manager's signal to know when all enemies are defeated
+	var enemy_manager = get_node_or_null("EnemyManager")
+	if enemy_manager:
+		if not enemy_manager.is_connected("enemy_died", _on_enemy_died):
+			enemy_manager.connect("enemy_died", _on_enemy_died)
+
+func spawn_blocking_doors(room):
+	# Remove any existing doors first
+	for door in door_instances:
+		door.queue_free()
+	door_instances.clear()
+	
+	# Get all connection points
+	if room.has_node("ConnectionPoints"):
+		var connection_points = room.get_node("ConnectionPoints")
+		
+		# Spawn doors at each connection point
+		for direction in ["north", "south", "east", "west"]:
+			if connection_points.has_node(direction):
+				var connection_point = connection_points.get_node(direction)
+				spawn_door_at_point(connection_point, direction)
+
+func spawn_door_at_point(point, direction):
+	var door = load(DOOR_SCENE).instantiate()
+	add_child(door)
+	door.name = "BlockingDoor_" + direction
+	
+	# Position the door at the connection point
+	door.global_position = point.global_position
+	
+	# Rotate the door based on direction
+	match direction:
+		"north":
+			door.rotate_y(PI) # 180 degrees
+		"east":
+			door.rotate_y(PI / 2) # 90 degrees
+		"west":
+			door.rotate_y(-PI / 2) # -90 degrees
+	
+	# Add to our tracking array
+	door_instances.append(door)
+	print("Door spawned at " + direction + " exit")
+
+func spawn_enemies_in_room(room):
+	active_enemies.clear()
+	
+	# Get room bounds for enemy spawning
+	var bounds = get_room_bounds(room)
+	if not bounds:
+		print("Error: Could not get room bounds for enemy spawning")
+		return
+		
+	# Calculate spawn area dimensions
+	var size = bounds["max"] - bounds["min"]
+	var center = bounds["min"] + size / 2
+	
+	# Determine number of enemies based on room size
+	var enemy_count = 3 # default
+	if size.x * size.z > 100:
+		enemy_count = 5 # more enemies in bigger rooms
+	
+	print("Spawning " + str(enemy_count) + " enemies in " + room.name)
+	
+	# Get player position to avoid spawning too close
+	var player_pos = player.global_position
+	
+	# Spawn enemies
+	var positions_used = []
+	for i in range(enemy_count):
+		var valid_position = false
+		var spawn_pos = Vector3.ZERO
+		var attempts = 0
+		
+		# Try to find a position not too close to player or other enemies
+		while not valid_position and attempts < 10:
+			# Random position within the room bounds
+			var x_offset = randf_range(-size.x / 3, size.x / 3)
+			var z_offset = randf_range(-size.z / 3, size.z / 3)
+			spawn_pos = center + Vector3(x_offset, 1.0, z_offset)
+			
+			# Check if too close to player (minimum 5 units away)
+			var too_close_to_player = spawn_pos.distance_to(player_pos) < 5.0
+			
+			# Check if too close to other enemies
+			var too_close_to_others = false
+			for pos in positions_used:
+				if spawn_pos.distance_to(pos) < 3.0:
+					too_close_to_others = true
+					break
+					
+			valid_position = not (too_close_to_player or too_close_to_others)
+			attempts += 1
+		
+		if valid_position:
+			# Spawn a skeleton enemy
+			var enemy = spawn_skeleton(spawn_pos)
+			if enemy:
+				active_enemies.append(enemy)
+				positions_used.append(spawn_pos)
+				print("Spawned skeleton at " + str(spawn_pos))
+		else:
+			print("Failed to find valid position for enemy " + str(i))
+
+func spawn_skeleton(position):
+	# Use skeletons for all enemies in the fight system
+	var enemy_script = preload("res://Scripts/SkeletonEnemy.gd")
+	
+	# Create enemy instance
+	var enemy = CharacterBody3D.new()
+	enemy.set_script(enemy_script)
+	enemy.name = "SkeletonEnemy" + str(randi())
+	
+	# Position enemy
+	enemy.global_position = position
+	
+	# Connect to enemy death signal
+	enemy.connect("enemy_died", _on_enemy_died)
+	
+	# Add to scene
+	add_child(enemy)
+	
+	return enemy
+
+func _on_enemy_died(enemy):
+	# Remove from active enemies list
+	active_enemies.erase(enemy)
+	
+	print("Enemy died: " + enemy.name + ". Remaining: " + str(active_enemies.size()))
+	
+	# Check if all enemies are defeated
+	if active_enemies.size() == 0 and locked_room:
+		print("All enemies defeated! Unlocking room.")
+		end_fight_sequence()
+
+func end_fight_sequence():
+	# Mark room as cleared
+	if locked_room:
+		locked_room.set_meta("cleared", true)
+		locked_room.set_meta("fighting", false)
+		
+	# Remove all doors
+	for door in door_instances:
+		var tween = create_tween()
+		tween.tween_property(door, "position:y", -3.0, 1.0)
+		
+		# Free the door after animation
+		tween.tween_callback(func():
+			door.queue_free()
+		)
+	
+	door_instances.clear()
+	locked_room = null
+	print("Room fight completed!")
+
 func debug_player_physics():
 	print("=== PLAYER PHYSICS DEBUG ===")
 	if not player:

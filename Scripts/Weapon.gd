@@ -15,39 +15,39 @@ var owner_node = null
 signal weapon_used(weapon)
 
 func _ready():
-    if not icon:
-        # Create default icon
-        var img = Image.new()
-        img.create(64, 64, false, Image.FORMAT_RGBA8)
-        img.fill(Color(1, 0, 0))
-        icon = ImageTexture.create_from_image(img)
+	if not icon:
+		# Create default icon
+		var img = Image.new()
+		img.create(64, 64, false, Image.FORMAT_RGBA8)
+		img.fill(Color(1, 0, 0))
+		icon = ImageTexture.create_from_image(img)
 
 func use():
-    if not can_use:
-        return false
-    
-    can_use = false
-    
-    # Actual weapon effect implemented in subclasses
-    _weapon_effect()
-    
-    emit_signal("weapon_used", self)
-    
-    # Start cooldown without await
-    var timer = get_tree().create_timer(cooldown)
-    timer.timeout.connect(func(): can_use = true)
-    
-    return true
+	if not can_use:
+		return false
+	
+	can_use = false
+	
+	# Actual weapon effect implemented in subclasses
+	_weapon_effect()
+	
+	emit_signal("weapon_used", self)
+	
+	# Start cooldown without await
+	var timer = get_tree().create_timer(cooldown)
+	timer.timeout.connect(func(): can_use = true)
+	
+	return true
 
 # Override in subclasses
 func _weapon_effect():
-    print("Base weapon effect")
+	print("Base weapon effect")
 
 func get_display_info() -> Dictionary:
-    return {
-        "name": item_name,
-        "description": description,
-        "damage": damage,
-        "cooldown": cooldown,
-        "icon": icon
-    }
+	return {
+		"name": item_name,
+		"description": description,
+		"damage": damage,
+		"cooldown": cooldown,
+		"icon": icon
+	}
