@@ -11,15 +11,13 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_u33wk")
 
-[node name="HealthBar" type="ProgressBar" parent="."]
+[node name="HealthContainer" type="HBoxContainer" parent="."]
 layout_mode = 0
-offset_right = 4.0
-offset_bottom = 27.0
-
-[node name="HealthLabel" type="Label" parent="."]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 200.0
+offset_bottom = 50.0
+theme_override_constants/separation = 4
 
 [node name="WeaponSlots" type="HBoxContainer" parent="."]
 layout_mode = 0
