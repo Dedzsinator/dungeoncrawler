@@ -7,15 +7,15 @@ const GENERIC_ROOM_SCENE = "res://Scenes/Corridor.tscn"
 
 # More room type definitions for variety
 const ROOM_SCENES = {
-    "corridor": "res://Scenes/Corridor.tscn",
-    "corridor_l": "res://Scenes/CorridorL.tscn", # Will create these
-    "corridor_t": "res://Scenes/CorridorT.tscn", # Will create these
-    "corridor_x": "res://Scenes/CorridorX.tscn", # Will create these
-    "long_room_1": "res://Scenes/LongRoom1.tscn", # Will create these
-    "long_room_2": "res://Scenes/LongRoom2.tscn", # Will create these
-    "long_room_3": "res://Scenes/LongRoom3.tscn", # Will create these
-    "room_3": "res://Scenes/Room3.tscn", # Will create these
-    "room_4": "res://Scenes/Room4.tscn" # Will create these
+	"corridor": "res://Scenes/Corridor.tscn",
+	"corridor_l": "res://Scenes/CorridorL.tscn", # Will create these
+	"corridor_t": "res://Scenes/CorridorT.tscn", # Will create these
+	"corridor_x": "res://Scenes/CorridorX.tscn", # Will create these
+	"long_room_1": "res://Scenes/LongRoom1.tscn", # Will create these
+	"long_room_2": "res://Scenes/LongRoom2.tscn", # Will create these
+	"long_room_3": "res://Scenes/LongRoom3.tscn", # Will create these
+	"room_3": "res://Scenes/Room3.tscn", # Will create these
+	"room_4": "res://Scenes/Room4.tscn" # Will create these
 }
 
 # Number of generic rooms between start and boss rooms
@@ -34,6 +34,9 @@ var door_instances = []
 
 func _ready():
 	print("=== GAME INITIALIZATION ===")
+	
+	# Add to main group for easier reference
+	add_to_group("main")
 
 	# Register ui_help action if it doesn't exist
 	if not InputMap.has_action("ui_help"):
@@ -48,6 +51,12 @@ func _ready():
 
 	var enemy_manager = preload("res://Scripts/EnemyManager.gd").new()
 	add_child(enemy_manager)
+	
+	# Add the room manager to handle seasons and boss rooms
+	var room_manager = RoomManager.new()
+	room_manager.add_to_group("room_manager")
+	add_child(room_manager)
+	print("Room manager initialized with seasonal system")
 	
 	if not InputMap.has_action("switch_weapon"):
 		InputMap.add_action("switch_weapon")
@@ -212,6 +221,12 @@ func create_linear_dungeon_path(start_room):
 		# Connect and align rooms
 		if connect_and_align_rooms(current_room, new_room, exit_dir, desired_entry):
 			rooms.append(new_room)
+			
+			# Apply a random season to the new room
+			var room_manager = get_tree().get_first_node_in_group("room_manager")
+			if room_manager:
+				room_manager.apply_random_season_to_room(new_room)
+			
 			current_room = new_room
 			previous_exit_dir = exit_dir
 			remaining_rooms -= 1
@@ -238,6 +253,9 @@ func add_boss_room(last_corridor, previous_exit_dir):
 		boss_room.global_position = last_corridor.global_position + Vector3(8, 0, 0)
 		ensure_room_has_collision(boss_room)
 		rooms.append(boss_room)
+		
+		# Set up as boss room using our new system
+		setup_boss_room(boss_room)
 		print("No exits available for boss room, placed at default position")
 		return
 	
@@ -260,6 +278,7 @@ func add_boss_room(last_corridor, previous_exit_dir):
 		if boss_entries.is_empty():
 			boss_room.global_position = last_corridor.global_position + Vector3(8, 0, 0)
 			rooms.append(boss_room)
+			setup_boss_room(boss_room)
 			print("Boss room has no valid entry points, using default placement")
 			return
 		else:
@@ -269,6 +288,9 @@ func add_boss_room(last_corridor, previous_exit_dir):
 	if connect_and_align_rooms(last_corridor, boss_room, exit_dir, desired_entry):
 		rooms.append(boss_room)
 		
+		# Set up as boss room using our new system
+		setup_boss_room(boss_room)
+		
 		# Connect signal for boss room if it has one
 		if boss_room.has_signal("player_entered"):
 			boss_room.connect("player_entered", _on_boss_room_entered)
@@ -276,7 +298,18 @@ func add_boss_room(last_corridor, previous_exit_dir):
 		# Fallback placement if connection fails
 		boss_room.global_position = last_corridor.global_position + Vector3(8, 0, 0)
 		rooms.append(boss_room)
+		setup_boss_room(boss_room)
 		print("Failed to connect boss room, using fallback placement")
+		
+# Setup the boss room using our BossRoom controller
+func setup_boss_room(room_node):
+	var room_manager = get_tree().get_first_node_in_group("room_manager")
+	if room_manager:
+		room_manager.convert_to_boss_room(room_node)
+	else:
+		# Fallback if room manager isn't available
+		var boss_room_controller = BossRoom.new(room_node)
+		boss_room_controller.setup()
 
 # Helper function to get opposite direction
 func get_opposite_direction(direction: String) -> String:
@@ -572,11 +605,8 @@ func start_fight_sequence(room):
 	# Spawn enemies
 	spawn_enemies_in_room(room)
 	
-	# Connect to the enemy manager's signal to know when all enemies are defeated
-	var enemy_manager = get_node_or_null("EnemyManager")
-	if enemy_manager:
-		if not enemy_manager.is_connected("enemy_died", _on_enemy_died):
-			enemy_manager.connect("enemy_died", _on_enemy_died)
+	# Connect to enemy death signals directly rather than relying on EnemyManager
+	active_enemies.clear() # Reset active enemies list
 
 func spawn_blocking_doors(room):
 	# Remove any existing doors first
@@ -616,8 +646,6 @@ func spawn_door_at_point(point, direction):
 	print("Door spawned at " + direction + " exit")
 
 func spawn_enemies_in_room(room):
-	active_enemies.clear()
-	
 	# Get room bounds for enemy spawning
 	var bounds = get_room_bounds(room)
 	if not bounds:
@@ -666,23 +694,22 @@ func spawn_enemies_in_room(room):
 			attempts += 1
 		
 		if valid_position:
-			# Spawn a skeleton enemy
-			var enemy = spawn_skeleton(spawn_pos)
+			# Spawn an enemy
+			var enemy = spawn_enemy(spawn_pos)
 			if enemy:
 				active_enemies.append(enemy)
 				positions_used.append(spawn_pos)
-				print("Spawned skeleton at " + str(spawn_pos))
+				print("Spawned enemy at " + str(spawn_pos))
 		else:
 			print("Failed to find valid position for enemy " + str(i))
 
-func spawn_skeleton(position):
-	# Use skeletons for all enemies in the fight system
-	var enemy_script = preload("res://Scripts/SkeletonEnemy.gd")
+func spawn_enemy(position):
+	var enemy_script = load("res://Scripts/MeleeEnemy.gd")
 	
 	# Create enemy instance
 	var enemy = CharacterBody3D.new()
 	enemy.set_script(enemy_script)
-	enemy.name = "SkeletonEnemy" + str(randi())
+	enemy.name = "Enemy" + str(randi())
 	
 	# Position enemy
 	enemy.global_position = position
@@ -854,3 +881,43 @@ func draw_connection_line(point_a, point_b):
 	im.surface_end()
 	
 	add_child(mi)
+
+# Called when proceeding to the next floor through the boss room
+func regenerate_dungeon():
+	print("=== REGENERATING DUNGEON FOR NEXT FLOOR ===")
+	
+	# Save player's state before regenerating
+	var player_health = 0
+	var player_position = Vector3.ZERO
+	if player:
+		player_health = player.hearts
+		player_position = player.global_position
+		player.queue_free()
+		player = null
+	
+	# Clear all existing rooms and enemies
+	for room in rooms:
+		room.queue_free()
+	rooms.clear()
+	
+	get_tree().call_group("enemies", "queue_free")
+	
+	# Generate new dungeon
+	generate_dungeon()
+	
+	# Spawn the player in the starting room
+	spawn_player()
+	
+	# Restore player's health (maybe with a small bonus)
+	if player:
+		player.hearts = min(player.max_hearts, player_health + 1) # Give 1 extra heart
+		player.update_health_display()
+		
+		# Add a message about proceeding to the next floor
+		var hud = get_tree().get_first_node_in_group("hud")
+		if hud and hud.has_method("show_message"):
+			var room_manager = get_tree().get_first_node_in_group("room_manager")
+			var floor_num = 1
+			if room_manager:
+				floor_num = room_manager.current_floor
+			hud.show_message("Descended to floor " + str(floor_num) + "!")

@@ -20,46 +20,36 @@ var charging = false
 
 func _ready():
 	super._ready()
-	max_health = 300
-	movement_speed = 2.0
-	attack_damage = 25
-	attack_radius = 3.0
-	attack_cooldown = 2.5
-	detection_radius = 15.0
 	
-	# Setup boss visuals - larger model
+	# Make sure we have a proper mesh
 	if has_node("MeshInstance3D"):
 		var mesh_instance = $MeshInstance3D
-		var capsule = CapsuleMesh.new()
-		capsule.radius = 1.0
-		capsule.height = 4.0
-		mesh_instance.mesh = capsule
 		
-		var material = StandardMaterial3D.new()
-		material.albedo_color = Color(0.5, 0.0, 0.5) # Purple for boss
-		material.emission_enabled = true
-		material.emission = Color(0.3, 0.0, 0.3)
-		material.emission_energy = 0.8
-		mesh_instance.material_override = material
+		# Check if mesh is assigned
+		if not mesh_instance.mesh:
+			var capsule = CapsuleMesh.new()
+			capsule.radius = 0.8
+			capsule.height = 3.5
+			mesh_instance.mesh = capsule
 		
-	# Create larger collision
-	if has_node("CollisionShape3D"):
-		var collision = $CollisionShape3D
-		var shape = CapsuleShape3D.new()
-		shape.radius = 1.0
-		shape.height = 4.0
-		collision.shape = shape
+		# Check if material is assigned
+		if not mesh_instance.material_override:
+			var material = StandardMaterial3D.new()
+			material.albedo_color = Color(0.8, 0.2, 0.2) # Red color
+			material.emission_enabled = true
+			material.emission = Color(0.5, 0.1, 0.1)
+			material.emission_energy_multiplier = 0.8
+			mesh_instance.material_override = material
+
+	# Fix collision by ensuring we don't have null values
+	if charging:
+		charge_damage = max(1.0, charge_damage)
+		charge_direction = charge_direction.normalized()
+		if charge_direction.length() < 0.1:
+			charge_direction = Vector3(0, 0, -1) # Default direction
 	
-	# Setup attack patterns
-	attack_patterns = [
-		AttackType.SLAM,
-		AttackType.SWEEP,
-		AttackType.CHARGE,
-		AttackType.SLAM
-	]
-	
-	# Connect health changed signal
-	connect("health_changed", _on_health_changed)
+	# Set meta to identify as boss
+	set_meta("is_boss", true)
 
 func _physics_process(delta):
 	# Override default behavior when charging
@@ -99,9 +89,9 @@ func process_charging(delta):
 	if charge_elapsed_time >= charge_duration:
 		end_charge()
 
-func _on_health_changed(current_health, max_health):
+func _on_health_changed(current_health, max_hp):
 	# Check for phase transitions
-	var health_percent = current_health / max_health
+	var health_percent = current_health / max_hp
 	
 	for i in range(phase_thresholds.size()):
 		if health_percent <= phase_thresholds[i] and current_phase == i + 1:
@@ -117,6 +107,12 @@ func begin_new_phase(phase: int):
 	phase_transition.explosiveness = 1.0
 	add_child(phase_transition)
 	
+	# Play animation if available
+	if has_node("AnimationPlayer"):
+		var anim_player = get_node("AnimationPlayer")
+		if anim_player.has_animation("phase_change"):
+			anim_player.play("phase_change")
+	
 	match phase:
 		2:
 			# Speed and damage increase
@@ -126,9 +122,11 @@ func begin_new_phase(phase: int):
 			
 			# Visual change
 			if has_node("MeshInstance3D"):
-				var material = $MeshInstance3D.material_override
-				material.emission_energy = 1.5
-				material.albedo_color = Color(0.7, 0.0, 0.7)
+				var mesh = $MeshInstance3D
+				if mesh.material_override:
+					var material = mesh.material_override
+					material.emission_energy_multiplier = 1.5
+					material.albedo_color = Color(0.7, 0.0, 0.7)
 		3:
 			# Further increase
 			movement_speed *= 1.5
@@ -137,9 +135,11 @@ func begin_new_phase(phase: int):
 			
 			# Visual change
 			if has_node("MeshInstance3D"):
-				var material = $MeshInstance3D.material_override
-				material.emission_energy = 2.5
-				material.albedo_color = Color(0.9, 0.0, 0.9)
+				var mesh = $MeshInstance3D
+				if mesh.material_override:
+					var material = mesh.material_override
+					material.emission_energy_multiplier = 2.5
+					material.albedo_color = Color(0.9, 0.0, 0.9)
 
 func perform_attack():
 	if not player:
@@ -160,7 +160,11 @@ func perform_attack():
 func perform_slam_attack():
 	# Area of effect slam attack
 	if has_node("AnimationPlayer"):
-		$AnimationPlayer.play("slam")
+		var anim_player = $AnimationPlayer
+		if anim_player.has_animation("slam"):
+			anim_player.play("slam")
+		else:
+			print("Warning: 'slam' animation not found in AnimationPlayer")
 	
 	# Create shockwave effect
 	var shockwave = Area3D.new()
@@ -245,7 +249,11 @@ func perform_slam_attack():
 func perform_sweep_attack():
 	# Wide 180-degree attack
 	if has_node("AnimationPlayer"):
-		$AnimationPlayer.play("sweep")
+		var anim_player = $AnimationPlayer
+		if anim_player.has_animation("sweep"):
+			anim_player.play("sweep")
+		else:
+			print("Warning: 'sweep' animation not found in AnimationPlayer")
 	
 	# Create sweep area
 	var sweep = Area3D.new()
@@ -307,7 +315,11 @@ func perform_sweep_attack():
 func perform_charge_attack():
 	# Charge toward player
 	if has_node("AnimationPlayer"):
-		$AnimationPlayer.play("charge")
+		var anim_player = $AnimationPlayer
+		if anim_player.has_animation("charge"):
+			anim_player.play("charge")
+		else:
+			print("Warning: 'charge' animation not found in AnimationPlayer")
 	
 	if not player:
 		return
@@ -335,8 +347,10 @@ func perform_charge_attack():
 	trail.gravity = Vector3(0, 0, 0)
 	add_child(trail)
 	
-	# Schedule end of charge if nothing stops it
-	get_tree().create_timer(charge_duration).timeout.connect(end_charge)
+	# Schedule end of charge if nothing stops it safely
+	await get_tree().create_timer(charge_duration).timeout
+	if is_instance_valid(self) and charging:
+		end_charge()
 
 func end_charge():
 	if not charging:

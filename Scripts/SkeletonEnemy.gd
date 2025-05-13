@@ -19,14 +19,14 @@ func _ready():
 	for child in skeleton_model.get_children():
 		if child is MeshInstance3D:
 			var material = StandardMaterial3D.new()
-			material.albedo_texture = preload("res://free-animated-low-poly-cartoon-skeleton/textures/LPolyPallete.png")
+			material.albedo_texture = preload("res://Assets/textures/LPolyPallete.png")
 			child.material_override = material
 		
 		# Look for nested mesh instances (common in imported models)
 		for subchild in child.get_children():
 			if subchild is MeshInstance3D:
 				var material = StandardMaterial3D.new()
-				material.albedo_texture = preload("res://free-animated-low-poly-cartoon-skeleton/textures/LPolyPallete.png")
+				material.albedo_texture = preload("res://Assets/textures/LPolyPallete.png")
 				subchild.material_override = material
 	
 	# Set up proper collision
@@ -60,8 +60,8 @@ func perform_attack():
 		if has_node("SkeletonModel"):
 			# Simple animation: tilt forward slightly
 			var tween = create_tween()
-			tween.tween_property($SkeletonModel, "rotation_degrees:x", 30, 0.2)
-			tween.tween_property($SkeletonModel, "rotation_degrees:x", 0, 0.2)
+			tween.tween_property($SkeletonModel, "rotation_degrees:x", 30.0, 0.2)
+			tween.tween_property($SkeletonModel, "rotation_degrees:x", 0.0, 0.2)
 
 # Override to add death animation
 func die():
@@ -69,9 +69,9 @@ func die():
 	
 	# Death animation
 	if has_node("SkeletonModel"):
-		var tween = create_tween()
-		tween.tween_property($SkeletonModel, "rotation_degrees:z", 90, 0.5)
-		tween.tween_property(self, "position:y", -0.5, 0.5)
+		var death_tween = create_tween()
+		death_tween.tween_property($SkeletonModel, "rotation_degrees:z", 90, 0.5)
+		death_tween.tween_property(self, "position:y", -0.5, 0.5)
 	
 	# Wait for animation then remove
 	await get_tree().create_timer(1.0).timeout

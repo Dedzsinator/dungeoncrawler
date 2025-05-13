@@ -8,6 +8,11 @@ var current_ammo: int
 var is_reloading: bool = false
 
 func _ready():
+	# Set model and texture paths
+	model_path = "res://Assets/Items/Bow_And_Arrow.fbx"
+	texture_path = "res://Assets/textures/Bow_basecolor.png"
+	
+	# Call parent ready which will load the model
 	super._ready()
 	
 	# Set weapon properties
@@ -20,23 +25,32 @@ func _ready():
 	# Initialize ammo
 	current_ammo = max_ammo
 	
-	# Create weapon mesh
-	var weapon_mesh = MeshInstance3D.new()
-	var mesh = CylinderMesh.new()
-	mesh.top_radius = 0.05
-	mesh.bottom_radius = 0.05
-	mesh.height = 1.2
-	weapon_mesh.mesh = mesh
+	# Create weapon mesh if model loading fails
+	var weapon_mesh: MeshInstance3D
 	
-	# Rotate to align with bow orientation
-	weapon_mesh.rotation_degrees.x = 90
-	
-	# Apply material
-	var material = StandardMaterial3D.new()
-	material.albedo_color = Color(0.4, 0.2, 0.1)
-	weapon_mesh.material_override = material
-	
-	add_child(weapon_mesh)
+	if not model_instance:
+		# Fallback mesh if model loading fails
+		weapon_mesh = MeshInstance3D.new()
+		var mesh = CylinderMesh.new()
+		mesh.top_radius = 0.05
+		mesh.bottom_radius = 0.05
+		mesh.height = 1.2
+		weapon_mesh.mesh = mesh
+		
+		# Rotate to align with bow orientation
+		weapon_mesh.rotation_degrees.x = 90
+		
+		# Apply material
+		var material = StandardMaterial3D.new()
+		material.albedo_color = Color(0.4, 0.2, 0.1)
+		weapon_mesh.material_override = material
+		
+		# Add the mesh to the scene
+		add_child(weapon_mesh)
+	else:
+		# Scale and position the model properly
+		model_instance.scale = Vector3(0.01, 0.01, 0.01) # Adjust scale as needed
+		model_instance.rotation_degrees = Vector3(0, 0, 0) # Adjust rotation as needed
 
 func use():
 	if is_reloading:
@@ -93,7 +107,6 @@ func _weapon_effect():
 	var elapsed_time = 0.0
 	var direction = Vector3.FORWARD
 
-	# Remove _init() and use _ready() instead
 	func _ready():
 		# Connect signal
 		body_entered.connect(_on_body_entered)
@@ -113,8 +126,10 @@ func _weapon_effect():
 			queue_free()
 	
 	func _on_body_entered(body):
-		if body is Enemy:
-			body.take_damage(damage)
+		# Check if body is an Enemy using is_in_group instead of 'is' operator
+		if body.is_in_group("enemies"):
+			if body.has_method("take_damage"):
+				body.take_damage(damage)
 			queue_free()
 		elif not body.is_in_group("player"):
 			# Hit something else

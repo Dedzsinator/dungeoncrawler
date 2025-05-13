@@ -28,8 +28,8 @@ func _ready():
 		player.connect("weapon_switched", _on_weapon_switched)
 		player.connect("passive_item_added", _on_passive_item_added)
 		
-		# Update initial display
-		_update_health_display(player.health, player.max_health)
+		# Update initial display - use the correct properties
+		_update_health_display(player.half_hearts, player.max_hearts * 2)
 		_update_weapon_display()
 	else:
 		print("ERROR: Player not found for HUD")

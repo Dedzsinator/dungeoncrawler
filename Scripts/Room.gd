@@ -3,6 +3,9 @@ extends Node3D
 signal player_entered(room)
 
 func _ready():
+	# Add to the rooms group for easy reference
+	add_to_group("rooms")
+	
 	# Create ConnectionPoints if they don't exist
 	if not has_node("ConnectionPoints"):
 		var connection_points = Node3D.new()
