@@ -1,13 +1,13 @@
 [gd_scene load_steps=5 format=3 uid="uid://bg5r7y0dlqg8i"]
 
-[ext_resource type="PackedScene" uid="uid://caq7kerqwh006" path="res://Assets/Room 3.fbx" id="1_xnpld"]
+[ext_resource type="PackedScene" uid="uid://b2b6dwselbxgl" path="res://Assets/Room 3.fbx" id="1_xnpld"]
 [ext_resource type="Script" path="res://Scripts/Room.gd" id="2_qjcpx"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_cr7f1"]
-size = Vector3(9.8936, 5.11218, 9.2589)
+size = Vector3(19.7748, 5.11218, 11.6114)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_84dn0"]
-size = Vector3(10, 0.5, 10)
+size = Vector3(19.9749, 0.5, 12.0009)
 
 [node name="Room3" type="Node3D"]
 script = ExtResource("2_qjcpx")
@@ -18,25 +18,22 @@ transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0, 0, 
 [node name="ConnectionPoints" type="Node3D" parent="."]
 
 [node name="north" type="Marker3D" parent="ConnectionPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 1, 0)
 
 [node name="south" type="Marker3D" parent="ConnectionPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1, 10)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 1, 12)
 
 [node name="east" type="Marker3D" parent="ConnectionPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 1, 5)
-
-[node name="west" type="Marker3D" parent="ConnectionPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 1, 6)
 
 [node name="RoomDetector" type="Area3D" parent="."]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="RoomDetector"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.20166, 2.55609, 5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.1423, 2.55609, 6.17624)
 shape = SubResource("BoxShape3D_cr7f1")
 
 [node name="CollisionBounds" type="StaticBody3D" parent="."]
 
 [node name="Floor" type="CollisionShape3D" parent="CollisionBounds"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.98747, 0, 6.00043)
 shape = SubResource("BoxShape3D_84dn0")

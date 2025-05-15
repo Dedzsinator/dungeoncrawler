@@ -7,7 +7,7 @@
 size = Vector3(7.79559, 2.40894, 1.76996)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_84dn0"]
-size = Vector3(7.93198, 0.364014, 1.95633)
+size = Vector3(7.93198, 0.245422, 1.95633)
 
 [node name="Corridor" type="Node3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.00169468, 0.00425071, 0.00500298)
@@ -33,5 +33,5 @@ shape = SubResource("BoxShape3D_cr7f1")
 [node name="CollisionBounds" type="StaticBody3D" parent="."]
 
 [node name="Floor" type="CollisionShape3D" parent="CollisionBounds"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.04698, 0.0301514, 0.983322)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.04698, -0.11911, 0.983322)
 shape = SubResource("BoxShape3D_84dn0")

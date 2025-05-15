@@ -1,7 +1,7 @@
-[gd_scene load_steps=5 format=3 uid="uid://dk2542ahjr6rc"]
+[gd_scene load_steps=5 format=3 uid="uid://ck32q51mlpudx"]
 
-[ext_resource type="PackedScene" uid="uid://bvxj4gjsumpck" path="res://Assets/Room 4.fbx" id="1_xnpld"]
-[ext_resource type="Script" path="res://Scripts/Room.gd" id="2_qjcpx"]
+[ext_resource type="Script" path="res://Scripts/Room.gd" id="1_mocf4"]
+[ext_resource type="PackedScene" uid="uid://b2b6dwselbxgl" path="res://Assets/Room 3.fbx" id="2_3f472"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_cr7f1"]
 size = Vector3(9.8936, 5.11218, 9.2589)
@@ -9,19 +9,19 @@ size = Vector3(9.8936, 5.11218, 9.2589)
 [sub_resource type="BoxShape3D" id="BoxShape3D_84dn0"]
 size = Vector3(10, 0.5, 10)
 
-[node name="Room4" type="Node3D"]
-script = ExtResource("2_qjcpx")
+[node name="Room3" type="Node3D"]
+script = ExtResource("1_mocf4")
 
-[node name="Room 4" parent="." instance=ExtResource("1_xnpld")]
+[node name="Room 3" parent="." instance=ExtResource("2_3f472")]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0, 0, 0)
 
 [node name="ConnectionPoints" type="Node3D" parent="."]
 
 [node name="north" type="Marker3D" parent="ConnectionPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 1, 0)
 
 [node name="south" type="Marker3D" parent="ConnectionPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1, 10)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 1, 12)
 
 [node name="east" type="Marker3D" parent="ConnectionPoints"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 1, 5)

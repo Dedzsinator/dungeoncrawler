@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://dt5c3wkrlkewg"]
+[gd_scene load_steps=11 format=3 uid="uid://dt5c3wkrlkewg"]
 
 [ext_resource type="Script" path="res://Scripts/BossEnemy.gd" id="1_rl2v7"]
 
@@ -42,7 +42,6 @@ tracks/0/keys = {
 
 [sub_resource type="Animation" id="Animation_death"]
 resource_name = "death"
-length = 1.0
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
@@ -113,10 +112,6 @@ _data = {
 "slam": SubResource("Animation_slam"),
 "sweep": SubResource("Animation_sweep")
 }
-albedo_color = Color(0.905882, 0.27451, 0.192157, 1)
-emission_enabled = true
-emission = Color(0.647059, 0.145098, 0.0980392, 1)
-emission_energy_multiplier = 0.58
 
 [node name="BossEnemy" type="CharacterBody3D"]
 collision_layer = 2

@@ -31,8 +31,8 @@ signal passive_item_added(item)
 # Camera settings
 var camera_first_person = true
 var camera_transition_speed = 5.0
-var camera_head_position = Vector3(0, 1.7, 0)
-var camera_third_position = Vector3(0, 3, 4)
+var camera_head_position = Vector3(0, 1.2, 0.15) # Lower and slightly forward position
+var camera_third_position = Vector3(0, 2.0, 3.0) # Adjusted third-person view
 var head_bob_enabled = true
 var head_bob_amount = 0.05
 var head_bob_speed = 14.0
@@ -45,12 +45,28 @@ var weapon_offset = Vector3.ZERO
 var yaw: float = 0.0
 var pitch: float = 0.0
 
+# Player model reference
+var player_model: Node3D = null
+
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	
 	# Hide the capsule mesh
 	if has_node("MeshInstance3D"):
 		$MeshInstance3D.visible = false
+	
+	# Adjust collision shape to make player shorter
+	var collision_shape = get_node_or_null("CollisionShape3D")
+	if collision_shape and collision_shape.shape is CapsuleShape3D:
+		var capsule_shape = collision_shape.shape as CapsuleShape3D
+		capsule_shape.height = 1.5 # Shorter character height (default was 1.8)
+		capsule_shape.radius = 0.35 # Slightly thinner character
+		# Adjust the position of the collision shape
+		collision_shape.position.y = capsule_shape.height / 2
+		
+	# Adjust camera position
+	camera_head_position = Vector3(0, 1.5, 0.2) # Adjusted head position for visibility
+	camera_third_position = Vector3(0, 2.5, 3.0) # Adjusted third-person camera position
 	
 	# Create and set up the Adventurer player model
 	create_adventurer_player_model()
@@ -89,21 +105,25 @@ func _ready() -> void:
 	if inventory.has_signal("weapon_added"):
 		inventory.connect("weapon_added", _on_weapon_added)
 	
+	# Ensure camera is properly positioned
+	camera_head_position = Vector3(0, 1.5, 0.2) # Adjusted head position
+	camera_third_position = Vector3(0, 2.5, 3.0) # Adjusted third-person view
+	$Camera3D.position = camera_head_position
+	
 	# Start with base health
 	hearts = max_hearts
 	half_hearts = hearts * 2
 	emit_signal("health_changed", half_hearts, max_hearts * 2)
 	
-	# Adjust camera position
-	camera_head_position = Vector3(0, 1.5, 0.2)
-	camera_third_position = Vector3(0, 2.5, 3)
+	# Apply camera position from ready function
 	$Camera3D.position = camera_head_position
 	
 	# Set up initial weapons
 	_create_initial_weapons()
 
 func create_adventurer_player_model():
-	var player_model = Node3D.new()
+	# Create the player model node
+	player_model = Node3D.new()
 	player_model.name = "PlayerModel"
 	add_child(player_model)
 	
@@ -121,6 +141,11 @@ func create_adventurer_player_model():
 	var skeleton = Skeleton3D.new()
 	skeleton.name = "Skeleton3D"
 	character_armature.add_child(skeleton)
+	
+	# Position the model to correct height
+	player_model.position.y = -0.9 # Lower the model to align properly with collision shape
+	
+	print("Created player model structure with skeleton")
 	
 	# Add basic bones that are likely used in the animations
 	# This matches naming conventions often used in 3D models
@@ -233,6 +258,9 @@ func create_adventurer_player_model():
 		
 		# Setup animations
 		setup_animations(model_instance, animation_player)
+		
+		# Set up animation tree for more sophisticated animation control
+		setup_animation_tree(model_instance, animation_player)
 	else:
 		push_error("Failed to load Adventurer model from: " + model_path)
 	
@@ -274,7 +302,9 @@ func setup_animations(model_instance, animation_player):
 		"IdleWithWeapon": "res://Assets/Player/Adventurer/Adventurer_IdleWithWeapon.glb",
 		"Death": "res://Assets/Player/Adventurer/Adventurer_Death.glb",
 		"Hit": "res://Assets/Player/Adventurer/Adventurer_Hit.glb",
-		"Interact": "res://Assets/Player/Adventurer/Adventurer_Interact.glb"
+		"Interact": "res://Assets/Player/Adventurer/Adventurer_Interact.glb",
+		"jump_falling": "res://Assets/Player/Adventurer/Adventurer_Jump.glb", # Using jump animation for falling
+		"jump_end": "res://Assets/Player/Adventurer/Adventurer_Land.glb" # Using landing animation
 	}
 	
 	# Find the actual skeleton path in our model
@@ -433,7 +463,7 @@ func find_animation_player_in_node(node):
 	return null
 
 func play_animation(anim_name):
-	var player_model = get_node_or_null("PlayerModel")
+	# Use the class variable instead of local one
 	if player_model:
 		var animation_player = player_model.get_node_or_null("AnimationPlayer")
 		if animation_player:
@@ -476,7 +506,7 @@ func play_animation(anim_name):
 	return false
 
 func force_animation_play(anim_name, blend_time = 0.2):
-	var player_model = get_node_or_null("PlayerModel")
+	# Use the class variable instead of a local one
 	if player_model:
 		var animation_player = player_model.get_node_or_null("AnimationPlayer")
 		if animation_player:
@@ -606,21 +636,41 @@ func _physics_process(delta: float) -> void:
 	
 	# Apply gravity
 	if not is_on_floor():
+		# Store previous y velocity to detect transitions
+		var prev_y_velocity = velocity.y
+		
 		velocity.y -= gravity * delta
+		
+		# Play falling animation if moving downward significantly
+		if velocity.y < -4.0: # Falling threshold
+			play_animation("jump_falling")
+		# Started falling (transition from rising to falling)
+		elif prev_y_velocity >= 0 and velocity.y < 0:
+			play_animation("jump_falling")
 	else:
+		# Store if we were falling before hitting the ground
+		var was_falling = velocity.y < -4.0
+		
 		# Reset downward velocity when on floor
 		velocity.y = -0.1 # Small downward force to keep grounded
+		
+		# Handle landing from a jump/fall
+		if was_falling:
+			play_animation("jump_end")
+			# Create a small camera shake effect for landing
+			var shake_amount = min(abs(velocity.y) * 0.01, 0.05)
+			var original_pos = $Camera3D.position
+			var tween = create_tween()
+			tween.tween_property($Camera3D, "position", original_pos + Vector3(0, -shake_amount, 0), 0.1)
+			tween.tween_property($Camera3D, "position", original_pos, 0.1)
 
 	# Jump
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = jump_force
 		
 		# Play jump animation
-		var player_model = get_node_or_null("PlayerModel")
 		if player_model:
-			var animation_player = player_model.get_node_or_null("AnimationPlayer")
-			if animation_player and animation_player.has_animation("Jump"):
-				animation_player.play("Jump")
+			play_animation("jump_falling")
 	
 	# Apply head bobbing when walking - only in first person mode
 	if camera_first_person and head_bob_enabled and is_on_floor() and (velocity.x != 0 or velocity.z != 0):
@@ -641,8 +691,7 @@ func _physics_process(delta: float) -> void:
 	
 	# Update player model position and rotation in third-person mode
 	if !camera_first_person:
-		# Get player model
-		var player_model = get_node_or_null("PlayerModel")
+		# Use class variable instead of local one
 		if player_model:
 			player_model.rotation_degrees.y = 180
 			
@@ -690,7 +739,6 @@ func _damage_feedback():
 	can_take_damage = false
 	
 	# Play hit animation
-	var player_model = get_node_or_null("PlayerModel")
 	if player_model:
 		var animation_player = player_model.get_node_or_null("AnimationPlayer")
 		if animation_player and animation_player.has_animation("Hit"):
@@ -730,7 +778,7 @@ func die() -> void:
 	print("Player died!")
 	emit_signal("player_died")
 	
-	var player_model = get_node_or_null("PlayerModel")
+	# Use class variable instead of local one
 	if player_model:
 		var animation_player = player_model.get_node_or_null("AnimationPlayer")
 		if animation_player and animation_player.has_animation("Death"):
@@ -784,7 +832,7 @@ func use_weapon() -> void:
 	if current_weapon:
 		# Play attack animation
 		if play_animation("Attack"):
-			var player_model = get_node_or_null("PlayerModel")
+			# Use class variable instead of local one
 			if player_model:
 				var animation_player = player_model.get_node_or_null("AnimationPlayer")
 				if animation_player:
@@ -817,9 +865,6 @@ func toggle_camera_view() -> void:
 	var active_weapon = null
 	if inventory:
 		active_weapon = inventory.get_active_weapon()
-	
-	# Find player model
-	var player_model = get_node_or_null("PlayerModel")
 	
 	# Update camera position based on view mode
 	if camera_first_person:
@@ -962,3 +1007,84 @@ func _setup_mesh_skeleton(model_node, skeleton_node):
 	# Recursively check all children
 	for child in model_node.get_children():
 		_setup_mesh_skeleton(child, skeleton_node)
+
+# Set up animation tree for more sophisticated animation control
+func setup_animation_tree(model_instance, animation_player):
+	# Create animation tree
+	var anim_tree = AnimationTree.new()
+	anim_tree.name = "AnimationTree"
+	model_instance.add_child(anim_tree)
+	
+	# Set the animation player for the tree
+	anim_tree.anim_player = animation_player.get_path()
+	
+	# Create a state machine
+	var state_machine = AnimationNodeStateMachine.new()
+	
+	# Create animation nodes for our states
+	var idle_node = AnimationNodeAnimation.new()
+	idle_node.animation = "PlayerAnimations/Idle"
+	
+	var walk_node = AnimationNodeAnimation.new()
+	walk_node.animation = "PlayerAnimations/Walk"
+	
+	var jump_falling_node = AnimationNodeAnimation.new()
+	jump_falling_node.animation = "PlayerAnimations/jump_falling"
+	
+	var jump_end_node = AnimationNodeAnimation.new()
+	jump_end_node.animation = "PlayerAnimations/jump_end"
+	
+	var idle_weapon_node = AnimationNodeAnimation.new()
+	idle_weapon_node.animation = "PlayerAnimations/IdleWithWeapon"
+	
+	# Add states to the state machine
+	state_machine.add_node("idle", idle_node)
+	state_machine.add_node("walk", walk_node)
+	state_machine.add_node("jump_falling", jump_falling_node)
+	state_machine.add_node("jump_end", jump_end_node)
+	state_machine.add_node("idle_weapon", idle_weapon_node)
+	
+	# Create transitions
+	var idle_to_walk = AnimationNodeStateMachineTransition.new()
+	var walk_to_idle = AnimationNodeStateMachineTransition.new()
+	var walk_to_jump = AnimationNodeStateMachineTransition.new()
+	var idle_to_jump = AnimationNodeStateMachineTransition.new()
+	var jump_to_land = AnimationNodeStateMachineTransition.new()
+	var land_to_idle = AnimationNodeStateMachineTransition.new()
+	var idle_to_weapon = AnimationNodeStateMachineTransition.new()
+	var weapon_to_idle = AnimationNodeStateMachineTransition.new()
+	var weapon_to_walk = AnimationNodeStateMachineTransition.new()
+	
+	# Configure transitions - set blend times
+	idle_to_walk.xfade_time = 0.2
+	walk_to_idle.xfade_time = 0.2
+	walk_to_jump.xfade_time = 0.1
+	idle_to_jump.xfade_time = 0.1
+	jump_to_land.xfade_time = 0.1
+	land_to_idle.xfade_time = 0.2
+	idle_to_weapon.xfade_time = 0.2
+	weapon_to_idle.xfade_time = 0.2
+	weapon_to_walk.xfade_time = 0.2
+	
+	# Add transitions to state machine
+	state_machine.add_transition("idle", "walk", idle_to_walk)
+	state_machine.add_transition("walk", "idle", walk_to_idle)
+	state_machine.add_transition("walk", "jump_falling", walk_to_jump)
+	state_machine.add_transition("idle", "jump_falling", idle_to_jump)
+	state_machine.add_transition("jump_falling", "jump_end", jump_to_land)
+	state_machine.add_transition("jump_end", "idle", land_to_idle)
+	state_machine.add_transition("idle", "idle_weapon", idle_to_weapon)
+	state_machine.add_transition("idle_weapon", "idle", weapon_to_idle)
+	state_machine.add_transition("idle_weapon", "walk", weapon_to_walk)
+	
+	# Set default state
+	state_machine.set_start_node("idle")
+	
+	# Connect animation tree to state machine
+	anim_tree.tree_root = state_machine
+	
+	# Enable the animation tree
+	anim_tree.active = true
+	
+	# Store animation tree reference for later use
+	return anim_tree

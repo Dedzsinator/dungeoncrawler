@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://cmpq7g0d3hn5v"]
 
-[ext_resource type="PackedScene" uid="uid://dpjb2xbin40na" path="res://Assets/Long room 1.fbx" id="1_xnpld"]
+[ext_resource type="PackedScene" uid="uid://bfwpox1gghlsx" path="res://Assets/Long room 1.fbx" id="1_xnpld"]
 [ext_resource type="Script" path="res://Scripts/Room.gd" id="2_qjcpx"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_cr7f1"]
