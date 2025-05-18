@@ -1,0 +1,14 @@
+AudioStreamPlayer3D
+GPUParticles3D
+OmniLight3D
+Label
+Node3D
+CollisionShape3D
+Area3D
+Button
+Panel
+Sprite3D
+Sprite2D
+Control
+GridContainer
+CanvasLayer
