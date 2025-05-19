@@ -10,3 +10,4 @@ res://Assets/VFX/Shaders/s_simple1.tres
 res://Scripts/Levels/level_1.gd
 res://Scenes/Objects/torch.tscn
 res://Scenes/water_puddle.tscn
+res://Materials/rtx_wall_material.tres

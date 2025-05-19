@@ -1,26 +1,17 @@
-[gd_scene load_steps=5 format=3 uid="uid://b3hkjw4fldxei"]
+[gd_scene load_steps=3 format=3 uid="uid://b3hkjw4fldxei"]
 
-[ext_resource type="Shader" uid="uid://dwak7ivoavgfd" path="res://Materials/water_puddle.gdshader" id="1_e8xm0"]
-[ext_resource type="Texture2D" uid="uid://4yxd0gw486dx" path="res://Assets/VFX/Textures/T_PerlinNoise_Tiled.png" id="2_1wvhw"]
+[ext_resource type="Material" uid="uid://c3pf5qcb1dwxx" path="res://Materials/water_puddle_material.tres" id="1_2xfnf"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_jdrv4"]
-render_priority = 0
-shader = ExtResource("1_e8xm0")
-shader_parameter/albedo = Color(0.109804, 0.145098, 0.172549, 0.752941)
-shader_parameter/metallic = 0.1
-shader_parameter/roughness = 0.01
-shader_parameter/reflectance = 0.8
-shader_parameter/noise_texture = ExtResource("2_1wvhw")
-shader_parameter/wave_speed = 0.1
-shader_parameter/wave_intensity = 0.01
-shader_parameter/enable_shadows = true
-shader_parameter/shadow_strength = 0.8
+[sub_resource type="CylinderMesh" id="CylinderMesh_h6r8a"]
+top_radius = 1.0
+bottom_radius = 1.0
+height = 0.05
+radial_segments = 32
+rings = 1
 
-[sub_resource type="PlaneMesh" id="PlaneMesh_30y3n"]
-material = SubResource("ShaderMaterial_jdrv4")
-size = Vector2(1, 1)
-subdivide_width = 10
-subdivide_depth = 10
+[node name="WaterPuddle" type="Node3D"]
 
-[node name="WaterPuddle" type="MeshInstance3D"]
-mesh = SubResource("PlaneMesh_30y3n")
+[node name="PuddleMesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("CylinderMesh_h6r8a")
+skeleton = NodePath("../..")
+surface_material_override/0 = ExtResource("1_2xfnf")
