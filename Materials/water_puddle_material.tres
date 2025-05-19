@@ -1,0 +1,17 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://c3pf5qcb1dwxx"]
+
+[ext_resource type="Shader" path="res://Materials/water_puddle.gdshader" id="1_2xfnf"]
+[ext_resource type="Texture2D" uid="uid://4yxd0gw486dx" path="res://Assets/VFX/Textures/T_PerlinNoise_Tiled.png" id="2_cjlth"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_2xfnf")
+shader_parameter/albedo = Color(0.109804, 0.196078, 0.262745, 0.752941)
+shader_parameter/metallic = 0.1
+shader_parameter/roughness = 0.02
+shader_parameter/reflectance = 0.7
+shader_parameter/wave_speed = 0.08
+shader_parameter/wave_intensity = 0.01
+shader_parameter/enable_shadows = true
+shader_parameter/shadow_strength = 0.8
+shader_parameter/noise_texture = ExtResource("2_cjlth")

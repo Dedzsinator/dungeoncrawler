@@ -1,3 +1,4 @@
+res://Scenes/Levels
 res://Scripts/Levels
 res://Scenes/Objects
 res://Scripts/NPCs
@@ -15,4 +16,3 @@ res://Scenes/Monsters/SkeletonWarrior
 res://Scripts/Player
 res://Scripts
 res://Scenes/Player
-res://Scenes/Levels

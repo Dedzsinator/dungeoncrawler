@@ -6,7 +6,7 @@ extends CharacterBody3D
 
 @export var player: CharacterBody3D
 
-var speed: float = 10.0
+var speed: float = 1.0
 var direction: Vector3
 var health: int = 4
 var damage: int = 3
