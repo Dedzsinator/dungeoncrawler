@@ -1,22 +1,26 @@
-[gd_scene load_steps=11 format=3 uid="uid://bh353a2ioskrm"]
+[gd_scene load_steps=13 format=3 uid="uid://bh353a2ioskrm"]
 
 [ext_resource type="Script" uid="uid://b7h0sfqn1dvbx" path="res://Scripts/Levels/level_1.gd" id="1_i36j2"]
 [ext_resource type="MeshLibrary" uid="uid://c3stnl1idv2lh" path="res://Scripts/Levels/library.tres" id="1_n5qkr"]
 [ext_resource type="PackedScene" uid="uid://cckb1h5cc6kxo" path="res://Scenes/Player/player.tscn" id="2_c406j"]
+[ext_resource type="Shader" uid="uid://c2usaak7yqtnh" path="res://Materials/sky.gdshader" id="3_8h4de"]
 [ext_resource type="PackedScene" uid="uid://f4115ubn0p6r" path="res://Scenes/GUI/game_over_overlay.tscn" id="4_cv2gw"]
 [ext_resource type="PackedScene" uid="uid://bd3ylfofkux46" path="res://Scenes/GUI/gui.tscn" id="5_x3l7b"]
 [ext_resource type="PackedScene" uid="uid://wxakd0mysd2" path="res://Scenes/Objects/torch.tscn" id="6_20uw2"]
 [ext_resource type="PackedScene" uid="uid://3qp1wx8ds6lh" path="res://Scenes/NPCs/mage.tscn" id="6_m0h5h"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_vrecm"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_jcebb"]
+shader = ExtResource("3_8h4de")
 
 [sub_resource type="Sky" id="Sky_o8cdd"]
-sky_material = SubResource("ProceduralSkyMaterial_vrecm")
+sky_material = SubResource("ShaderMaterial_jcebb")
 
 [sub_resource type="Environment" id="Environment_xyhu7"]
-background_mode = 1
+background_mode = 2
 background_color = Color(0.392157, 0.392157, 0.392157, 1)
 sky = SubResource("Sky_o8cdd")
+ambient_light_source = 3
+ambient_light_color = Color(0.677179, 0.491999, 0.310551, 1)
 glow_enabled = true
 glow_normalized = true
 glow_intensity = 0.5
@@ -27,7 +31,13 @@ fog_density = 0.002
 volumetric_fog_enabled = true
 volumetric_fog_density = 0.02
 
+[sub_resource type="FogMaterial" id="FogMaterial_f3nwb"]
+density = 0.3364
+albedo = Color(0.75955, 0.689841, 0.676064, 1)
+edge_fade = 0.17411
+
 [node name="Level1" type="Node3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1)
 script = ExtResource("1_i36j2")
 
 [node name="Floor" type="GridMap" parent="."]
@@ -57,6 +67,11 @@ metadata/_editor_floor_ = Vector3(0, -1, 0)
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_xyhu7")
 
+[node name="FogVolume" type="FogVolume" parent="WorldEnvironment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.95813, 0, -10.0161)
+size = Vector3(78.3528, 2, 75.0518)
+material = SubResource("FogMaterial_f3nwb")
+
 [node name="Player" parent="." instance=ExtResource("2_c406j")]
 transform = Transform3D(-0.995478, 0, -0.0949945, 0, 1, 0, 0.0949945, 0, -0.995478, -32.1482, -1.8, 22.347)
 
@@ -69,6 +84,7 @@ transform = Transform3D(-0.995478, 0, -0.0949945, 0, 1, 0, 0.0949945, 0, -0.9954
 [node name="Projectiles" type="Node3D" parent="."]
 
 [node name="Objects" type="Node3D" parent="."]
+transform = Transform3D(1.01281, 0, 0, 0, 1.01281, 0, 0, 0, 1.01281, 0, 0, 0)
 
 [node name="Torch" parent="Objects" instance=ExtResource("6_20uw2")]
 transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, -37.5592, 0, 17.838)

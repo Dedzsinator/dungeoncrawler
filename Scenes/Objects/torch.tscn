@@ -99,9 +99,6 @@ skeleton = NodePath("")
 
 [node name="OmniLight3D" type="OmniLight3D" parent="."]
 light_color = Color(1, 0.754642, 0.447406, 1)
-light_energy = 5.986
-light_indirect_energy = 6.358
-light_volumetric_fog_energy = 10.005
 
 [node name="GPUParticles3D" type="GPUParticles3D" parent="."]
 amount = 500
