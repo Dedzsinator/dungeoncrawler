@@ -1,0 +1,79 @@
+[gd_scene load_steps=9 format=3 uid="uid://c2nqmk0cd63b"]
+
+[ext_resource type="Script" path="res://Scripts/dungeon_generator.gd" id="1_nb3d4"]
+[ext_resource type="PackedScene" uid="uid://cckb1h5cc6kxo" path="res://Scenes/Player/player.tscn" id="2_5uh2d"]
+[ext_resource type="PackedScene" uid="uid://f4115ubn0p6r" path="res://Scenes/GUI/game_over_overlay.tscn" id="3_tngyf"]
+[ext_resource type="PackedScene" uid="uid://bd3ylfofkux46" path="res://Scenes/GUI/gui.tscn" id="4_pyk5q"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_c1dyn"]
+sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
+ground_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
+
+[sub_resource type="Sky" id="Sky_o8cdd"]
+sky_material = SubResource("ProceduralSkyMaterial_c1dyn")
+
+[sub_resource type="Environment" id="Environment_xyhu7"]
+background_mode = 1
+background_color = Color(0.2, 0.2, 0.2, 1)
+sky = SubResource("Sky_o8cdd")
+ambient_light_source = 3
+ambient_light_color = Color(0.5, 0.5, 0.5, 1)
+glow_enabled = true
+glow_normalized = true
+glow_intensity = 0.5
+glow_blend_mode = 0
+fog_enabled = true
+fog_light_energy = 0.1
+fog_density = 0.002
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.02
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_rp6xv"]
+
+[node name="ProceduralDungeon" type="Node3D"]
+script = ExtResource("1_nb3d4")
+dungeon_width = 3
+dungeon_height = 3
+monster_density = 0.03
+npc_count = 2
+puddle_count = 5
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_xyhu7")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, 0.75, -0.433013, 0, 5, 0)
+visible = false
+light_energy = 0.5
+shadow_enabled = true
+shadow_bias = 0.03
+directional_shadow_mode = 1
+directional_shadow_blend_splits = true
+directional_shadow_max_distance = 40.0
+
+[node name="DungeonWorld" type="Node3D" parent="."]
+
+[node name="Floors" type="Node3D" parent="DungeonWorld"]
+
+[node name="Walls" type="Node3D" parent="DungeonWorld"]
+
+[node name="Doors" type="Node3D" parent="DungeonWorld"]
+
+[node name="Props" type="Node3D" parent="DungeonWorld"]
+
+[node name="Lights" type="Node3D" parent="DungeonWorld"]
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("NavigationMesh_rp6xv")
+
+[node name="Player" parent="." instance=ExtResource("2_5uh2d")]
+
+[node name="Monsters" type="Node3D" parent="."]
+
+[node name="NPCs" type="Node3D" parent="."]
+
+[node name="WaterPuddles" type="Node3D" parent="."]
+
+[node name="GameOverOverlay" parent="." instance=ExtResource("3_tngyf")]
+
+[node name="GUI" parent="." instance=ExtResource("4_pyk5q")]

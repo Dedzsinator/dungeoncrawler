@@ -2,6 +2,7 @@ extends Node3D
 
 @export var enable_rtx: bool = true
 @export var enable_water_puddles: bool = true
+@export var enable_compute_rtx: bool = true
 @export var puddle_density: float = 0.2
 @export var max_puddles: int = 10
 
@@ -14,6 +15,9 @@ var noise_texture = preload("res://Assets/VFX/Textures/T_PerlinNoise_Tiled.png")
 var water_material = preload("res://Materials/water_puddle_material.tres")
 var rtx_wall_material = preload("res://Materials/rtx_wall_material.tres")
 
+# RTX Manager
+var rtx_manager: Node3D
+
 func _ready():
 	if not enable_rtx:
 		return
@@ -23,6 +27,38 @@ func _ready():
 	
 	if enable_water_puddles:
 		generate_water_puddles()
+	
+	if enable_compute_rtx:
+		setup_compute_rtx()
+
+func setup_compute_rtx():
+	# Create RTX manager
+	rtx_manager = Node3D.new()
+	rtx_manager.name = "RTXManager"
+	rtx_manager.set_script(load("res://Scripts/rtx_manager.gd"))
+	add_child(rtx_manager)
+	
+	# Tag geometry for RTX
+	tag_geometry_for_rtx()
+
+func tag_geometry_for_rtx():
+	# Add all mesh instances to the rtx_geometry group
+	var all_meshes = find_all_mesh_instances(get_tree().root)
+	for mesh in all_meshes:
+		if mesh.is_in_group("rtx_geometry"):
+			continue
+		mesh.add_to_group("rtx_geometry")
+
+func find_all_mesh_instances(node: Node) -> Array:
+	var result = []
+	
+	if node is MeshInstance3D:
+		result.append(node)
+	
+	for child in node.get_children():
+		result.append_array(find_all_mesh_instances(child))
+	
+	return result
 
 func setup_environment():
 	if environment == null:
@@ -137,6 +173,7 @@ func generate_water_puddles():
 		var puddle_size = randf_range(0.5, 1.0)
 		puddle.scale = Vector3(puddle_size, 0.01, puddle_size) * min(aabb.size.x, aabb.size.z) * 0.5
 		
+		# Add to scene
 		add_child(puddle)
 
 func get_dungeon_floors():

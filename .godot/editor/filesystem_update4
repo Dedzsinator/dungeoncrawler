@@ -1,4 +1,4 @@
-res://Scenes/Objects/torch.tscn
+res://Scenes/Levels/Level1.tscn
 res://Assets/default.tres
 res://Scenes/GUI/Inventory/Resources/iron_sword.tres
 res://Scenes/GUI/Inventory/Resources/iron_armor.tres
@@ -7,7 +7,7 @@ res://Assets/VFX/Shaders/s_simple1.tres
 res://Assets/VFX/Shaders/s_simple2.tres
 res://Scripts/Levels/library.tres
 res://Assets/VFX/Shaders/s_UpLevel.tres
-res://Scenes/Levels/Level1.tscn
-res://Scenes/water_puddle.tscn
-res://Materials/sky.gdshader
+res://Scenes/Objects/torch.tscn
+res://Scenes/Player/player.tscn
 res://Scripts/Levels/level_1.gd
+res://Scripts/rtx_manager.gd
