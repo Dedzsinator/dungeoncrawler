@@ -11,3 +11,8 @@ res://Scenes/Objects/torch.tscn
 res://Scenes/Player/player.tscn
 res://Scripts/Levels/level_1.gd
 res://Scripts/rtx_manager.gd
+res://Scripts/Levels/level1.tscn
+res://Scenes/water_puddle.tscn
+res://Materials/armor.gdshader
+res://Scripts/Player/player.gd
+res://Materials/rtx_armor.gdshader

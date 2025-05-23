@@ -1,0 +1,16 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://Materials/rtx_armor.gdshader" id="1"]
+[ext_resource type="Texture2D" path="res://Assets/KayKit_Adventurers_1.0_FREE/KayKit_Adventurers_1.0_FREE/Characters/gltf/Knight_knight_texture.png" id="2"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/metallic = 0.9
+shader_parameter/roughness = 0.15
+shader_parameter/clearcoat = 0.8
+shader_parameter/clearcoat_roughness = 0.05
+shader_parameter/albedo_color = Color(0.8, 0.85, 0.9, 1)
+shader_parameter/normal_scale = 1.2
+shader_parameter/rim_power = 3.0
+shader_parameter/rim_color = Color(0.4, 0.7, 1, 0.3)
+shader_parameter/armor_texture = ExtResource("2")

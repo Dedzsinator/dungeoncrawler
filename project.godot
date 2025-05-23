@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="3D Action RPG"
-run/main_scene="uid://bh353a2ioskrm"
+run/main_scene="res://Scripts/Levels/level1.tscn"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://icon.svg"
 

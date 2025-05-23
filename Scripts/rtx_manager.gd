@@ -28,7 +28,10 @@ var camera: Camera3D
 func _ready():
 	if not enable_rtx:
 		return
-		
+	
+	# Add to RTX manager group
+	add_to_group("rtx_manager")
+	
 	# Get the main camera
 	camera = get_viewport().get_camera_3d()
 	if not camera:
@@ -138,9 +141,56 @@ func get_or_create_material_id(material: Material, material_map: Dictionary) -> 
 	if material is StandardMaterial3D:
 		var std_mat = material as StandardMaterial3D
 		mat_data.albedo = Vector4(std_mat.albedo_color.r, std_mat.albedo_color.g, std_mat.albedo_color.b, std_mat.albedo_color.a)
-		mat_data.emission = Vector4(std_mat.emission.r, std_mat.emission.g, std_mat.emission.b, std_mat.emission_energy)
+		
+		# Fix: In Godot 4, emission energy is built into the emission color
+		var emission_color = std_mat.emission
+		var emission_intensity = (emission_color.r + emission_color.g + emission_color.b) / 3.0
+		mat_data.emission = Vector4(emission_color.r, emission_color.g, emission_color.b, emission_intensity)
+		
 		mat_data.roughness = std_mat.roughness
 		mat_data.metallic = std_mat.metallic
+		
+		# Handle additional PBR properties if available
+		if std_mat.refraction_enabled:
+			mat_data.ior = 1.0 + std_mat.refraction_scale
+		if std_mat.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
+			mat_data.transmission = 1.0 - std_mat.albedo_color.a
+	
+	elif material is ShaderMaterial:
+		var shader_mat = material as ShaderMaterial
+		
+		# Try to extract common shader parameters
+		var albedo_param = shader_mat.get_shader_parameter("albedo_color")
+		if albedo_param is Color:
+			var color = albedo_param as Color
+			mat_data.albedo = Vector4(color.r, color.g, color.b, color.a)
+		elif albedo_param is Vector4:
+			mat_data.albedo = albedo_param as Vector4
+		
+		var metallic_param = shader_mat.get_shader_parameter("metallic")
+		if metallic_param is float:
+			mat_data.metallic = metallic_param
+		
+		var roughness_param = shader_mat.get_shader_parameter("roughness")
+		if roughness_param is float:
+			mat_data.roughness = roughness_param
+		
+		var emission_param = shader_mat.get_shader_parameter("emission")
+		if emission_param is Color:
+			var emission = emission_param as Color
+			mat_data.emission = Vector4(emission.r, emission.g, emission.b, (emission.r + emission.g + emission.b) / 3.0)
+		
+		# Handle RTX armor shader parameters
+		var rim_color_param = shader_mat.get_shader_parameter("rim_color")
+		if rim_color_param is Color:
+			var rim = rim_color_param as Color
+			# Add rim lighting as emission
+			mat_data.emission = Vector4(
+				mat_data.emission.x + rim.r * rim.a,
+				mat_data.emission.y + rim.g * rim.a,
+				mat_data.emission.z + rim.b * rim.a,
+				mat_data.emission.w + rim.a
+			)
 	
 	materials.append(mat_data)
 	material_map[key] = materials.size() - 1
@@ -474,9 +524,22 @@ func setup_compute_shader():
 	
 	print("RTX compute shader loaded successfully")
 
+
+var geometry_dirty: bool = false
+
+func mark_geometry_dirty():
+	geometry_dirty = true
+
 func _process(_delta):
 	if not enable_rtx or not rd or not compute_shader.is_valid():
 		return
+	
+	# Rebuild geometry if it's dirty
+	if geometry_dirty:
+		print("Rebuilding RTX geometry...")
+		build_scene_geometry()
+		setup_buffers() # Recreate buffers with new data
+		geometry_dirty = false
 	
 	# Update camera buffer
 	create_camera_buffer()
@@ -503,8 +566,6 @@ func _process(_delta):
 	rd.compute_list_end()
 	rd.submit()
 	rd.wait()
-	
-	# Copy result to viewport (you'll need to implement this part based on your needs)
 
 func _exit_tree():
 	if rd:

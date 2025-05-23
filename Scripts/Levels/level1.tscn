@@ -1,7 +1,7 @@
-[gd_scene load_steps=11 format=3 uid="uid://bh353a2ioskrm"]
+[gd_scene load_steps=11 format=3 uid="uid://da1qvnxdb6uw3"]
 
 [ext_resource type="Script" uid="uid://b7h0sfqn1dvbx" path="res://Scripts/Levels/level_1.gd" id="1_i36j2"]
-[ext_resource type="MeshLibrary" uid="uid://c3stnl1idv2lh" path="res://Scenes/Levels/library.tres" id="1_n5qkr"]
+[ext_resource type="MeshLibrary" uid="uid://c3stnl1idv2lh" path="res://Scripts/Levels/library.tres" id="1_n5qkr"]
 [ext_resource type="PackedScene" uid="uid://cckb1h5cc6kxo" path="res://Scenes/Player/player.tscn" id="2_c406j"]
 [ext_resource type="PackedScene" uid="uid://f4115ubn0p6r" path="res://Scenes/GUI/game_over_overlay.tscn" id="4_cv2gw"]
 [ext_resource type="PackedScene" uid="uid://bd3ylfofkux46" path="res://Scenes/GUI/gui.tscn" id="5_x3l7b"]
@@ -14,16 +14,17 @@
 sky_material = SubResource("ProceduralSkyMaterial_vrecm")
 
 [sub_resource type="Environment" id="Environment_xyhu7"]
-background_mode = 1
+background_mode = 2
 background_color = Color(0.392157, 0.392157, 0.392157, 1)
 sky = SubResource("Sky_o8cdd")
+ambient_light_color = Color(0.523934, 0.430681, 0.686265, 1)
 glow_enabled = true
 glow_normalized = true
 glow_intensity = 0.5
 glow_blend_mode = 0
 fog_enabled = true
+fog_light_color = Color(0.480209, 0.823487, 1, 1)
 fog_light_energy = 0.1
-fog_density = 0.002
 volumetric_fog_enabled = true
 volumetric_fog_density = 0.02
 

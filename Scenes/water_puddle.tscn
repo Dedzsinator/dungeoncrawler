@@ -12,6 +12,7 @@ rings = 1
 [node name="WaterPuddle" type="Node3D"]
 
 [node name="PuddleMesh" type="MeshInstance3D" parent="."]
+material_override = ExtResource("1_2xfnf")
 mesh = SubResource("CylinderMesh_h6r8a")
 skeleton = NodePath("../..")
 surface_material_override/0 = ExtResource("1_2xfnf")

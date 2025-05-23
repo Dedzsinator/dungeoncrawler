@@ -4,6 +4,9 @@ extends Node3D
 @onready var walls_gridmap: GridMap = get_node("Walls")
 @onready var walls2_gridmap: GridMap = get_node("Walls2")
 
+# Procedural generation
+var dungeon_generator: ProceduralDungeonGenerator
+
 # RTX Settings
 @export var enable_rtx: bool = true
 @export var enable_water_puddles: bool = true
@@ -44,6 +47,72 @@ func load_rtx_resources():
 	else:
 		print("Warning: rtx_wall_material.tres not found")
 
+func setup_environment_and_skybox():
+	var world_env = get_node("WorldEnvironment")
+	if not world_env:
+		world_env = WorldEnvironment.new()
+		add_child(world_env)
+	
+	if not world_env.environment:
+		world_env.environment = Environment.new()
+	
+	var environment = world_env.environment
+	
+	# Create a beautiful skybox
+	var sky_material = ProceduralSkyMaterial.new()
+	sky_material.sky_top_color = Color(0.3, 0.3, 0.8)
+	sky_material.sky_horizon_color = Color(0.6, 0.4, 0.2)
+	sky_material.ground_bottom_color = Color(0.1, 0.1, 0.1)
+	sky_material.ground_horizon_color = Color(0.4, 0.3, 0.2)
+	sky_material.sun_angle_max = 45.0
+	sky_material.sun_curve = 0.8
+	
+	var sky = Sky.new()
+	sky.sky_material = sky_material
+	
+	# Configure environment
+	environment.background_mode = Environment.BG_SKY
+	environment.sky = sky
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	environment.ambient_light_energy = 0.3
+	
+	# Volumetric fog settings
+	environment.volumetric_fog_enabled = true
+	environment.volumetric_fog_density = 0.05
+	environment.volumetric_fog_albedo = Color(0.8, 0.8, 0.9)
+	environment.volumetric_fog_emission = Color(0.1, 0.1, 0.2)
+	environment.volumetric_fog_emission_energy = 0.5
+	environment.volumetric_fog_gi_inject = 0.3
+	environment.volumetric_fog_anisotropy = 0.2
+	environment.volumetric_fog_length = 50.0
+	environment.volumetric_fog_detail_spread = 2.0
+	
+	# Regular fog
+	environment.fog_enabled = true
+	environment.fog_light_color = Color(0.7, 0.6, 0.5)
+	environment.fog_light_energy = 0.8
+	environment.fog_sun_scatter = 0.1
+	environment.fog_density = 0.02
+	environment.fog_aerial_perspective = 0.1
+	environment.fog_sky_affect = 0.2
+	
+	# Enhanced visual effects
+	environment.glow_enabled = true
+	environment.glow_intensity = 0.4
+	environment.glow_bloom = 0.1
+	environment.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
+	
+	# SSAO for better depth
+	environment.ssao_enabled = true
+	environment.ssao_radius = 0.8
+	environment.ssao_intensity = 0.6
+	
+	# Tone mapping
+	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
+	environment.tonemap_exposure = 1.1
+	
+	print("Environment and skybox configured")
+
 func setup_rtx():
 	print("Setting up enhanced RTX showcase for Level1...")
 	
@@ -67,7 +136,15 @@ func setup_rtx():
 	if enable_compute_rtx:
 		setup_compute_rtx()
 	
+	setup_player_rtx()
+	
 	print("RTX showcase setup complete!")
+
+func setup_player_rtx():
+	var player = get_node("Player")
+	if player and player.has_method("setup_rtx_armor"):
+		player.setup_rtx_armor()
+		print("Player RTX armor initialized")
 
 # Simplify VoxelGI setup as well to ensure no errors
 func add_voxel_gi():
@@ -604,6 +681,16 @@ func tag_geometry_for_rtx():
 		if not mesh.is_in_group("rtx_geometry"):
 			mesh.add_to_group("rtx_geometry")
 
+	var player = get_node("Player")
+	if player:
+		var knight_node = player.get_node("Knight")
+		if knight_node:
+			var armor_meshes = find_all_mesh_instances(knight_node)
+			for mesh in armor_meshes:
+				if not mesh.is_in_group("rtx_geometry"):
+					mesh.add_to_group("rtx_geometry")
+					print("Tagged player armor for RTX: ", mesh.name)
+
 func find_all_mesh_instances(node: Node) -> Array:
 	var result = []
 	
@@ -639,3 +726,55 @@ func create_monsters(count: int, min_x_pos: int, max_x_pos: int, min_z_pos: int,
 			count -= 1
 			if count == 0:
 				break
+
+func generate_procedural_dungeon():
+	print("Generating procedural dungeon...")
+	
+	# Create and configure the dungeon generator
+	dungeon_generator = ProceduralDungeonGenerator.new()
+	dungeon_generator.name = "DungeonGenerator"
+	dungeon_generator.dungeon_width = 20
+	dungeon_generator.dungeon_height = 20
+	dungeon_generator.room_min_size = 5
+	dungeon_generator.room_max_size = 10
+	dungeon_generator.max_rooms = 8
+	
+	add_child(dungeon_generator)
+	
+	# Wait for generation to complete
+	await get_tree().process_frame
+
+func spawn_monsters():
+	print("Spawning monsters...")
+	
+	if not dungeon_generator or dungeon_generator.rooms.is_empty():
+		print("No rooms available for monster spawning")
+		return
+	
+	var monsters_node = Node3D.new()
+	monsters_node.name = "Monsters"
+	add_child(monsters_node)
+	
+	# Skip first room (has Mage), spawn monsters in other rooms
+	for i in range(1, dungeon_generator.rooms.size()):
+		var room = dungeon_generator.rooms[i]
+		var monster_count = randi_range(1, 3)
+		
+		for j in range(monster_count):
+			spawn_monster_in_room(room, monsters_node)
+
+func spawn_monster_in_room(room: Rect2i, monsters_container: Node3D):
+	var monster = warrior_scene.instantiate()
+	
+	# Find random position in room
+	var cell_size = 4.
+	var monster_x = randi_range(room.position.x + 1, room.position.x + room.size.x - 2)
+	var monster_y = randi_range(room.position.y + 1, room.position.y + room.size.y - 2)
+	
+	monster.position = Vector3(monster_x * cell_size, 0, monster_y * cell_size)
+	
+	# Set player reference
+	if has_node("Player"):
+		monster.player = get_node("Player")
+	
+	monsters_container.add_child(monster)
