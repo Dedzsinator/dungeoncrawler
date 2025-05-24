@@ -12,12 +12,24 @@ class_name ProceduralDungeonGenerator
 @export var wall_height: float = 4.0
 @export var torch_height: float = 2.5
 
+# Generation parameters
+@export var puddle_chance: float = 0.15
+@export var enemy_density: float = 0.3
+@export var prop_density: float = 0.4
+
+# RTX Materials
+var rtx_wall_material: Material
+
 # Asset paths - using your KayKit assets
 var floor_assets = [
 	"res://Assets/KayKit_DungeonRemastered_1.0_FREE/KayKit_DungeonRemastered_1.0_FREE/Assets/gltf/floor_tile_large.gltf.glb",
 ]
 
-# Enhanced wall assets with specific types - UPDATED WITH MORE ASSETS
+var puddle_assets = [
+	"res://Assets/KayKit_DungeonRemastered_1.0_FREE/KayKit_DungeonRemastered_1.0_FREE/Assets/gltf/floor_tile_grate.gltf.glb",
+]
+
+# Enhanced wall assets with specific types
 var wall_assets = {
 	"straight": [
 		"res://Assets/KayKit_DungeonRemastered_1.0_FREE/KayKit_DungeonRemastered_1.0_FREE/Assets/gltf/wall.gltf.glb",
@@ -35,10 +47,27 @@ var wall_assets = {
 	]
 }
 
-var prop_assets = [
-	"res://Assets/KayKit_DungeonRemastered_1.0_FREE/KayKit_DungeonRemastered_1.0_FREE/Assets/gltf/torch_mounted.gltf.glb",
-	"res://Assets/KayKit_DungeonRemastered_1.0_FREE/KayKit_DungeonRemastered_1.0_FREE/Assets/gltf/barrel.gltf.glb",
-	"res://Assets/KayKit_DungeonRemastered_1.0_FREE/KayKit_DungeonRemastered_1.0_FREE/Assets/gltf/chest.gltf.glb"
+var prop_assets = {
+	"containers": [
+		"res://Assets/KayKit_DungeonRemastered_1.0_FREE/KayKit_DungeonRemastered_1.0_FREE/Assets/gltf/barrel.gltf.glb",
+		"res://Assets/KayKit_DungeonRemastered_1.0_FREE/KayKit_DungeonRemastered_1.0_FREE/Assets/gltf/chest.gltf.glb",
+		"res://Assets/KayKit_DungeonRemastered_1.0_FREE/KayKit_DungeonRemastered_1.0_FREE/Assets/gltf/crate.gltf.glb"
+	],
+	"furniture": [
+		"res://Assets/KayKit_DungeonRemastered_1.0_FREE/KayKit_DungeonRemastered_1.0_FREE/Assets/gltf/table_medium.gltf.glb",
+		"res://Assets/KayKit_DungeonRemastered_1.0_FREE/KayKit_DungeonRemastered_1.0_FREE/Assets/gltf/chair.gltf.glb"
+	],
+	"decorative": [
+		"res://Assets/KayKit_DungeonRemastered_1.0_FREE/KayKit_DungeonRemastered_1.0_FREE/Assets/gltf/candle.gltf.glb",
+		"res://Assets/KayKit_DungeonRemastered_1.0_FREE/KayKit_DungeonRemastered_1.0_FREE/Assets/gltf/banner_patternA_blue.gltf.glb"
+	]
+}
+
+# Enemy scenes
+var enemy_scenes = [
+	"res://Scenes/Enemies/slime.tscn",
+	"res://Scenes/Enemies/skeleton.tscn",
+	"res://Scenes/Enemies/goblin.tscn"
 ]
 
 # Grid representation
@@ -77,11 +106,17 @@ var floor_container: Node3D
 var wall_container: Node3D
 var prop_container: Node3D
 var torch_container: Node3D
+var enemy_container: Node3D
+var puddle_container: Node3D
 var torch_scene: PackedScene
+
+# Track occupied positions
+var occupied_positions: Array[Vector2i] = []
 
 func _ready():
 	setup_containers()
 	load_scenes()
+	load_rtx_materials()
 	generate_dungeon()
 
 func load_scenes():
@@ -89,6 +124,37 @@ func load_scenes():
 		torch_scene = preload("res://Scenes/Objects/torch.tscn")
 	else:
 		print("Warning: torch.tscn not found")
+
+func load_rtx_materials():
+	print("Loading RTX materials...")
+	
+	# Try to load the RTX wall material
+	if ResourceLoader.exists("res://Materials/rtx_wall_material.tres"):
+		rtx_wall_material = preload("res://Materials/rtx_wall_material.tres")
+		print("RTX wall material loaded successfully")
+	elif ResourceLoader.exists("res://Materials/rtx_wall.res"):
+		rtx_wall_material = preload("res://Materials/rtx_wall_material.tres")
+		print("RTX wall material loaded successfully")
+	else:
+		print("Warning: RTX wall material not found at res://Materials/rtx_wall.tres or .res")
+		# Create a fallback RTX-style material
+		create_fallback_rtx_material()
+
+func create_fallback_rtx_material():
+	print("Creating fallback RTX wall material...")
+	rtx_wall_material = StandardMaterial3D.new()
+	var mat = rtx_wall_material as StandardMaterial3D
+	
+	# RTX-style properties
+	mat.albedo_color = Color(0.7, 0.7, 0.8)
+	mat.metallic = 0.2
+	mat.roughness = 0.3
+	mat.clearcoat = 0.5
+	mat.clearcoat_roughness = 0.1
+	mat.normal_scale = 1.2
+	mat.flags_use_point_size = true
+	
+	print("Fallback RTX wall material created")
 
 func generate_dungeon():
 	print("Generating enhanced procedural dungeon...")
@@ -114,13 +180,18 @@ func generate_dungeon():
 	# Add floor tiles under walls
 	add_foundation_floors()
 	
+	# Add environmental features
+	add_puddles()
+	
 	# Add lighting with proper torch placement
 	add_enhanced_lighting()
 	
-	# Place props
-	place_npcs_and_props()
+	# Place interactive content
+	place_enemies()
+	place_props()
 	
 	print("Enhanced dungeon generation complete!")
+	print_generation_stats()
 
 func initialize_grid():
 	grid = []
@@ -285,7 +356,6 @@ func get_wall_rotation(wall_type: WallType) -> float:
 		_:
 			return 0.0
 
-# NEW FUNCTION - Get corner rotation based on neighboring walls
 func get_corner_rotation_from_neighbors(x: int, y: int) -> float:
 	# Check which directions have walls or boundaries
 	var has_wall_north = is_valid_position(Vector2i(x, y - 1)) and (grid[x][y - 1] == CellType.WALL or !is_valid_position(Vector2i(x, y - 1)))
@@ -358,6 +428,9 @@ func create_enhanced_wall_tile(position: Vector3, grid_x: int, grid_y: int):
 		
 		wall_instance.rotation.y = rotation
 		
+		 # Apply RTX wall material to all mesh instances
+		apply_rtx_material_to_wall(wall_instance)
+		
 		# Add collision to wall
 		add_collision_to_mesh(wall_instance)
 		wall_instance.add_to_group("walls")
@@ -367,7 +440,17 @@ func create_enhanced_wall_tile(position: Vector3, grid_x: int, grid_y: int):
 		if wall_type in [WallType.CORNER_NE, WallType.CORNER_SE, WallType.CORNER_SW, WallType.CORNER_NW]:
 			print("Corner at (", grid_x, ",", grid_y, ") type:", wall_type, " rotation:", rad_to_deg(rotation), "°")
 
-# ENHANCED CORNER DETECTION - better neighbor checking
+func apply_rtx_material_to_wall(wall_node: Node3D):
+	if not rtx_wall_material:
+		return
+	
+	# Find all MeshInstance3D nodes and apply the RTX material
+	var mesh_instances = find_mesh_instances_recursive(wall_node)
+	for mesh_instance in mesh_instances:
+		if mesh_instance is MeshInstance3D:
+			mesh_instance.material_override = rtx_wall_material
+			print("Applied RTX material to wall mesh")
+
 func determine_wall_type(x: int, y: int) -> WallType:
 	# Check neighboring floors in cardinal directions
 	var has_floor_north = is_valid_position(Vector2i(x, y - 1)) and is_floor_or_corridor(x, y - 1)
@@ -486,7 +569,6 @@ func create_walls():
 	# Add doors between rooms and corridors
 	add_doors_to_rooms()
 
-# NEW FUNCTION - Add outer corners where walls meet at right angles
 func add_outer_corners():
 	print("Adding outer corner walls...")
 	
@@ -521,7 +603,6 @@ func should_be_outer_corner(x: int, y: int) -> bool:
 		return true # Outer corner NW
 	
 	return false
-
 
 func get_appropriate_wall_asset(wall_type: WallType) -> String:
 	match wall_type:
@@ -586,6 +667,9 @@ func create_door_tile(position: Vector3, grid_x: int, grid_y: int):
 		# Apply appropriate rotation for door
 		var rotation = get_door_rotation(door_type)
 		door_instance.rotation.y = rotation
+		
+		# Apply RTX wall material to door as well
+		apply_rtx_material_to_wall(door_instance)
 		
 		# Add collision to door (but allow passage through the opening)
 		add_collision_to_mesh(door_instance)
@@ -751,33 +835,202 @@ func get_player_spawn_position() -> Vector3:
 	
 	return Vector3(0, 1, 0)
 
-func place_npcs_and_props():
-	# Add some random props to rooms
+func add_puddles():
+	print("Adding puddles to dungeon floors...")
+	
+	var cell_size = 4.0
+	var puddle_count = 0
+	
+	for x in range(dungeon_width):
+		for y in range(dungeon_height):
+			if (grid[x][y] == CellType.FLOOR or grid[x][y] == CellType.CORRIDOR) and randf() < puddle_chance:
+				if not is_position_occupied(Vector2i(x, y)) and is_good_puddle_location(x, y):
+					var puddle_pos = Vector3(x * cell_size, 0.01, y * cell_size)
+					create_puddle(puddle_pos)
+					mark_position_occupied(Vector2i(x, y))
+					puddle_count += 1
+	
+	print("Placed ", puddle_count, " puddles")
+
+func create_puddle(position: Vector3):
+	var puddle_asset = puddle_assets[randi() % puddle_assets.size()]
+	if ResourceLoader.exists(puddle_asset):
+		var puddle_scene = load(puddle_asset)
+		var puddle_instance = puddle_scene.instantiate()
+		puddle_instance.position = position
+		
+		# Add slight rotation variation
+		puddle_instance.rotation.y = randf() * PI * 2
+		
+		puddle_instance.add_to_group("puddles")
+		puddle_container.add_child(puddle_instance)
+
+func is_good_puddle_location(grid_x: int, grid_y: int) -> bool:
+	# Avoid placing puddles near doors or room centers
+	for door_pos in doors:
+		var distance = abs(door_pos.x - grid_x) + abs(door_pos.y - grid_y)
+		if distance < 2:
+			return false
+	
+	# Avoid room centers (first room spawn area)
+	if abs(grid_x - first_room_center.x) <= 2 and abs(grid_y - first_room_center.y) <= 2:
+		return false
+	
+	return true
+
+func place_enemies():
+	print("Spawning enemies...")
+	
+	var enemy_count = 0
+	var target_enemies = int(rooms.size() * enemy_density)
+	
+	# Skip first room (player spawn)
 	for i in range(1, rooms.size()):
 		var room = rooms[i]
-		var prop_count = randi_range(1, 2)
+		var room_enemy_count = randi_range(0, 2)
 		
-		for j in range(prop_count):
-			place_random_prop_in_room(room)
+		for j in range(room_enemy_count):
+			if enemy_count >= target_enemies:
+				break
+			
+			var enemy_pos = find_safe_room_position(room)
+			if enemy_pos != Vector2i(-1, -1):
+				spawn_enemy(enemy_pos)
+				enemy_count += 1
+	
+	# Add some corridor enemies
+	var corridor_enemies = int(target_enemies * 0.3)
+	for i in range(corridor_enemies):
+		var corridor_pos = find_safe_corridor_position()
+		if corridor_pos != Vector2i(-1, -1):
+			spawn_enemy(corridor_pos)
+			enemy_count += 1
+	
+	print("Spawned ", enemy_count, " enemies")
 
-func place_random_prop_in_room(room: Rect2i):
-	var prop_asset = prop_assets[randi() % prop_assets.size()]
+func spawn_enemy(grid_pos: Vector2i):
+	var available_enemies = []
+	for enemy_scene_path in enemy_scenes:
+		if ResourceLoader.exists(enemy_scene_path):
+			available_enemies.append(enemy_scene_path)
+	
+	if available_enemies.size() == 0:
+		print("Warning: No enemy scenes found")
+		return
+	
+	var enemy_scene_path = available_enemies[randi() % available_enemies.size()]
+	var enemy_scene = load(enemy_scene_path)
+	var enemy_instance = enemy_scene.instantiate()
+	
+	var cell_size = 4.0
+	var world_pos = Vector3(grid_pos.x * cell_size, 0.5, grid_pos.y * cell_size)
+	enemy_instance.position = world_pos
+	
+	# Add slight position variation
+	enemy_instance.position.x += randf_range(-0.5, 0.5)
+	enemy_instance.position.z += randf_range(-0.5, 0.5)
+	
+	enemy_instance.add_to_group("enemies")
+	enemy_container.add_child(enemy_instance)
+	mark_position_occupied(grid_pos)
+
+func place_props():
+	print("Placing props...")
+	
+	var prop_count = 0
+	
+	# Place props in rooms
+	for i in range(rooms.size()):
+		var room = rooms[i]
+		var room_prop_count = randi_range(1, 3)
+		
+		# Reduce props in first room
+		if i == 0:
+			room_prop_count = randi_range(0, 1)
+		
+		for j in range(room_prop_count):
+			if randf() < prop_density:
+				var prop_pos = find_safe_room_position(room)
+				if prop_pos != Vector2i(-1, -1):
+					place_random_prop(prop_pos)
+					prop_count += 1
+	
+	print("Placed ", prop_count, " props")
+
+func place_random_prop(grid_pos: Vector2i):
+	var prop_categories = prop_assets.keys()
+	var category = prop_categories[randi() % prop_categories.size()]
+	var category_assets = prop_assets[category]
+	
+	if category_assets.size() == 0:
+		return
+	
+	var prop_asset = category_assets[randi() % category_assets.size()]
 	if ResourceLoader.exists(prop_asset):
 		var prop_scene = load(prop_asset)
 		var prop_instance = prop_scene.instantiate()
 		
 		var cell_size = 4.0
-		var prop_x = randi_range(room.position.x + 1, room.position.x + room.size.x - 2)
-		var prop_y = randi_range(room.position.y + 1, room.position.y + room.size.y - 2)
+		var world_pos = Vector3(grid_pos.x * cell_size, 0, grid_pos.y * cell_size)
+		prop_instance.position = world_pos
 		
-		prop_instance.position = Vector3(prop_x * cell_size, 0, prop_y * cell_size)
+		# Add rotation variation
+		prop_instance.rotation.y = randf() * PI * 2
+		
+		prop_instance.add_to_group("props")
 		prop_container.add_child(prop_instance)
+		mark_position_occupied(grid_pos)
 
-func is_valid_position(pos: Vector2i) -> bool:
-	return pos.x >= 0 and pos.x < dungeon_width and pos.y >= 0 and pos.y < dungeon_height
+func find_safe_room_position(room: Rect2i) -> Vector2i:
+	var attempts = 0
+	var max_attempts = 20
+	
+	while attempts < max_attempts:
+		var x = randi_range(room.position.x + 1, room.position.x + room.size.x - 2)
+		var y = randi_range(room.position.y + 1, room.position.y + room.size.y - 2)
+		var pos = Vector2i(x, y)
+		
+		if not is_position_occupied(pos) and is_safe_spawn_location(x, y):
+			return pos
+		
+		attempts += 1
+	
+	return Vector2i(-1, -1)
 
-func is_floor_or_corridor(grid_x: int, grid_y: int) -> bool:
-	return grid[grid_x][grid_y] == CellType.FLOOR or grid[grid_x][grid_y] == CellType.CORRIDOR
+func find_safe_corridor_position() -> Vector2i:
+	var corridor_positions = []
+	
+	# Find all corridor positions
+	for x in range(dungeon_width):
+		for y in range(dungeon_height):
+			if grid[x][y] == CellType.CORRIDOR and not is_position_occupied(Vector2i(x, y)):
+				corridor_positions.append(Vector2i(x, y))
+	
+	if corridor_positions.size() == 0:
+		return Vector2i(-1, -1)
+	
+	return corridor_positions[randi() % corridor_positions.size()]
+
+func is_safe_spawn_location(grid_x: int, grid_y: int) -> bool:
+	# Avoid spawning too close to player start
+	var distance_to_spawn = abs(grid_x - first_room_center.x) + abs(grid_y - first_room_center.y)
+	if distance_to_spawn < 3:
+		return false
+	
+	# Avoid spawning near doors
+	for door_pos in doors:
+		var distance_to_door = abs(door_pos.x - grid_x) + abs(door_pos.y - grid_y)
+		if distance_to_door < 2:
+			return false
+	
+	return true
+
+func is_position_occupied(pos: Vector2i) -> bool:
+	return pos in occupied_positions
+
+func mark_position_occupied(pos: Vector2i):
+	if not is_position_occupied(pos):
+		occupied_positions.append(pos)
 
 func setup_containers():
 	floor_container = Node3D.new()
@@ -796,6 +1049,49 @@ func setup_containers():
 	torch_container.name = "Torches"
 	add_child(torch_container)
 	
-	var items_container = Node3D.new()
-	items_container.name = "Items"
-	add_child(items_container)
+	enemy_container = Node3D.new()
+	enemy_container.name = "Enemies"
+	add_child(enemy_container)
+	
+	puddle_container = Node3D.new()
+	puddle_container.name = "Puddles"
+	add_child(puddle_container)
+
+func print_generation_stats():
+	print("=== Dungeon Generation Stats ===")
+	print("Rooms: ", rooms.size())
+	print("Doors: ", doors.size())
+	print("Floors: ", floor_container.get_child_count())
+	print("Walls: ", wall_container.get_child_count())
+	print("Torches: ", torch_container.get_child_count())
+	print("Puddles: ", puddle_container.get_child_count())
+	print("Props: ", prop_container.get_child_count())
+	print("Enemies: ", enemy_container.get_child_count())
+	print("================================")
+
+func clear_dungeon():
+	occupied_positions.clear()
+	rooms.clear()
+	doors.clear()
+	
+	for container in [floor_container, wall_container, prop_container,
+					 torch_container, enemy_container, puddle_container]:
+		if container:
+			for child in container.get_children():
+				child.queue_free()
+
+func regenerate_dungeon():
+	print("Regenerating dungeon...")
+	clear_dungeon()
+	await get_tree().process_frame # Wait for cleanup
+	generate_dungeon()
+
+# Add these utility functions at the end of your script
+
+func is_valid_position(pos: Vector2i) -> bool:
+	return pos.x >= 0 and pos.x < dungeon_width and pos.y >= 0 and pos.y < dungeon_height
+
+func is_floor_or_corridor(x: int, y: int) -> bool:
+	if not is_valid_position(Vector2i(x, y)):
+		return false
+	return grid[x][y] == CellType.FLOOR or grid[x][y] == CellType.CORRIDOR

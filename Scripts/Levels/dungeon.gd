@@ -405,6 +405,10 @@ func tag_geometry_for_rtx():
 	var walls_node = dungeon_generator.get_node_or_null("Walls")
 	if walls_node:
 		mesh_instances.append_array(find_all_mesh_instances(walls_node))
+		# Tag walls specifically for RTX wall material
+		for mesh_instance in find_all_mesh_instances(walls_node):
+			if mesh_instance is MeshInstance3D:
+				mesh_instance.add_to_group("rtx_walls")
 	
 	# Get prop meshes
 	var props_node = dungeon_generator.get_node_or_null("Props")
