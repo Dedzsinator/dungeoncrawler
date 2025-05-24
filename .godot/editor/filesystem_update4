@@ -1,4 +1,4 @@
-res://Scenes/Player/player.tscn
+res://Scenes/Levels/Level1.tscn
 res://Assets/default.tres
 res://Scenes/GUI/Inventory/Resources/iron_sword.tres
 res://Scenes/GUI/Inventory/Resources/iron_armor.tres
@@ -8,16 +8,8 @@ res://Assets/VFX/Shaders/s_simple2.tres
 res://Assets/VFX/Shaders/s_UpLevel.tres
 res://Models/sky_enviornment.tres
 res://Materials/armor.gdshader
-res://Scenes/Levels/Level1.tscn
 res://Scenes/Objects/torch.tscn
+res://Scenes/Player/player.tscn
 res://Scenes/GUI/time_display.tscn
 res://Scenes/Levels/Procedural.tscn
-res://Scripts/NPCs/mage.gd
-res://Scenes/world_environment.tscn
-res://Scripts/GUI/time_display.gd
-res://Scripts/Levels/dungeon.gd
-res://Scenes/water_puddle.tscn
-res://Scripts/Environment/unified_enviornment.gd
-res://Scripts/Levels/procedural_gungeon_generator.gd
-res://Scripts/Player/player.gd
-res://Scripts/Levels/NPCs/mage.gd
+res://Scripts/Monsters/SkeletonWarrior/skeleton_warrior.gd
