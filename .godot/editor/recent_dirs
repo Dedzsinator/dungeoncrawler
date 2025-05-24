@@ -1,8 +1,8 @@
 res://Materials
-res://Scripts/Levels
-res://Scenes/Levels
-res://Models
 res://Scenes
+res://Scenes/Levels
+res://Scripts/Levels
+res://Models
 res://Scenes/Objects
 res://Scripts/NPCs
 res://Scenes/NPCs

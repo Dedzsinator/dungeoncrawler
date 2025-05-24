@@ -1,3 +1,4 @@
+MeshInstance3D
 FogVolume
 AudioStreamPlayer3D
 GPUParticles3D
@@ -12,4 +13,3 @@ Sprite3D
 Sprite2D
 Control
 GridContainer
-CanvasLayer

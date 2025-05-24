@@ -49,7 +49,7 @@ func die() -> void:
 	for i in range(rng):
 		var item_object := item_object_scene.instantiate()
 		item_object.position = global_position
-		get_node("../../Items").add_child(item_object)
+		get_node("../../Items").add_child(item_object) # Line 52 - This is failing
 	GameManager.gain_exp(100)
 
 func _on_animation_tree_animation_finished(anim_name: StringName) -> void:

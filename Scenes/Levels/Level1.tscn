@@ -53,11 +53,6 @@ script = ExtResource("1_i36j2")
 environment = SubResource("Environment_xyhu7")
 
 [node name="Player" parent="." instance=ExtResource("2_c406j")]
-gravity = null
-jump_force = null
-walk_speed = null
-run_speed = null
-enable_rtx_armor = null
 
 [node name="GameOverOverlay" parent="." instance=ExtResource("4_cv2gw")]
 

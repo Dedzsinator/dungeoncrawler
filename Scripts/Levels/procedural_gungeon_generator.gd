@@ -57,19 +57,6 @@ func _ready():
     load_scenes()
     generate_dungeon()
 
-func setup_containers():
-    floor_container = Node3D.new()
-    floor_container.name = "Floors"
-    add_child(floor_container)
-    
-    wall_container = Node3D.new()
-    wall_container.name = "Walls"
-    add_child(wall_container)
-    
-    prop_container = Node3D.new()
-    prop_container.name = "Props"
-    add_child(prop_container)
-
 func load_scenes():
     torch_scene = preload("res://Scenes/Objects/torch.tscn")
     mage_scene = preload("res://Scenes/NPCs/mage.tscn")
@@ -218,10 +205,13 @@ func create_floor_tile(position: Vector3):
         var floor_scene = load(floor_asset)
         var floor_instance = floor_scene.instantiate()
         floor_instance.position = position
+        
+        # Add collision to floor
+        add_collision_to_mesh(floor_instance)
+        
         floor_container.add_child(floor_instance)
 
 func create_wall_tile(position: Vector3, grid_x: int, grid_y: int):
-    # Choose wall type based on neighbors
     var wall_asset = get_appropriate_wall_asset(grid_x, grid_y)
     
     if ResourceLoader.exists(wall_asset):
@@ -233,11 +223,59 @@ func create_wall_tile(position: Vector3, grid_x: int, grid_y: int):
         var rotation = get_wall_rotation(grid_x, grid_y)
         wall_instance.rotation.y = rotation
         
+        # Add collision to wall
+        add_collision_to_mesh(wall_instance)
+        
         wall_container.add_child(wall_instance)
+
+func add_collision_to_mesh(node: Node3D):
+    # Find all MeshInstance3D nodes in the scene
+    var mesh_instances = find_mesh_instances_recursive(node)
+    
+    for mesh_instance in mesh_instances:
+        if mesh_instance is MeshInstance3D and mesh_instance.mesh:
+            # Create a StaticBody3D for collision
+            var static_body = StaticBody3D.new()
+            var collision_shape = CollisionShape3D.new()
+            
+            # Create collision shape from mesh
+            var shape = mesh_instance.mesh.create_trimesh_shape()
+            collision_shape.shape = shape
+            
+            # Add collision as child of the mesh instance
+            static_body.add_child(collision_shape)
+            mesh_instance.add_child(static_body)
+
+func find_mesh_instances_recursive(node: Node) -> Array:
+    var mesh_instances = []
+    
+    if node is MeshInstance3D:
+        mesh_instances.append(node)
+    
+    for child in node.get_children():
+        mesh_instances.append_array(find_mesh_instances_recursive(child))
+    
+    return mesh_instances
 
 func get_appropriate_wall_asset(grid_x: int, grid_y: int) -> String:
     # Simple wall selection - could be enhanced for corners, etc.
     return wall_assets[0] # Use basic wall for now
+
+func get_first_room_world_center() -> Vector3:
+    var cell_size = 4.0
+    return Vector3(first_room_center.x * cell_size, 0, first_room_center.y * cell_size)
+
+func get_player_spawn_position() -> Vector3:
+    if rooms.size() > 0:
+        var room = rooms[0]  # Use first room
+        var cell_size = 4.0
+        # Spawn in center of first room, slightly above ground
+        var spawn_x = room.position.x + room.size.x / 2
+        var spawn_y = room.position.y + room.size.y / 2
+        return Vector3(spawn_x * cell_size, 2.0, spawn_y * cell_size)
+    
+    # Fallback to origin if no rooms
+    return Vector3(0, 2, 0)
 
 func get_wall_rotation(grid_x: int, grid_y: int) -> float:
     # Determine rotation based on which side has floor
@@ -287,17 +325,14 @@ func create_torch(position: Vector3):
         prop_container.add_child(torch_instance)
 
 func place_npcs_and_props():
-    # Place Mage in the first room
-    if mage_scene and first_room_center != Vector2i.ZERO:
-        var mage_instance = mage_scene.instantiate()
-        var cell_size = 4.0
-        mage_instance.position = Vector3(
-            first_room_center.x * cell_size,
-            0,
-            first_room_center.y * cell_size
-        )
-        add_child(mage_instance)
-        print("Placed Mage at: ", mage_instance.position)
+    # Don't place Mage automatically - let the level script handle it
+    # Just add some random props to rooms
+    for i in range(rooms.size()):
+        var room = rooms[i]
+        var prop_count = randi_range(1, 3)
+        
+        for j in range(prop_count):
+            place_random_prop_in_room(room)
     
     # Add some random props to other rooms
     for i in range(1, rooms.size()):
@@ -325,3 +360,21 @@ func is_valid_position(pos: Vector2i) -> bool:
 
 func is_floor_or_corridor(grid_x: int, grid_y: int) -> bool:
     return grid[grid_x][grid_y] == CellType.FLOOR or grid[grid_x][grid_y] == CellType.CORRIDOR
+
+func setup_containers():
+    floor_container = Node3D.new()
+    floor_container.name = "Floors"
+    add_child(floor_container)
+    
+    wall_container = Node3D.new()
+    wall_container.name = "Walls"
+    add_child(wall_container)
+    
+    prop_container = Node3D.new()
+    prop_container.name = "Props"
+    add_child(prop_container)
+    
+    # Add Items container
+    var items_container = Node3D.new()
+    items_container.name = "Items"
+    add_child(items_container)

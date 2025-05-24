@@ -1,0 +1,37 @@
+[gd_scene load_steps=6 format=3 uid="uid://dwr7ueersvhgi"]
+
+[ext_resource type="Script" uid="uid://drwv0jgwwyo8t" path="res://Scripts/Levels/dungeon.gd" id="1_m8h5k"]
+[ext_resource type="PackedScene" uid="uid://f4115ubn0p6r" path="res://Scenes/GUI/game_over_overlay.tscn" id="3_fg0nb"]
+[ext_resource type="PackedScene" uid="uid://bd3ylfofkux46" path="res://Scenes/GUI/gui.tscn" id="4_7xs4w"]
+[ext_resource type="PackedScene" uid="uid://bimreqya5oh2h" path="res://Scenes/world_environment.tscn" id="5_fg0nb"]
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_1"]
+
+[node name="ProceduralLevel" type="Node3D"]
+script = ExtResource("1_m8h5k")
+puddle_density = 0.3
+max_puddles = 15
+dungeon_width = 30
+dungeon_height = 30
+max_rooms = 12
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, 0.75, -0.433013, 0, 8, 0)
+light_color = Color(0, 0.790077, 0.790077, 1)
+light_energy = 0.8
+shadow_enabled = true
+shadow_bias = 0.02
+directional_shadow_mode = 1
+directional_shadow_blend_splits = true
+directional_shadow_max_distance = 50.0
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("NavigationMesh_1")
+
+[node name="GameOverOverlay" parent="." instance=ExtResource("3_fg0nb")]
+
+[node name="GUI" parent="." instance=ExtResource("4_7xs4w")]
+
+[node name="Items" type="Node3D" parent="."]
+
+[node name="WorldEnvironment" parent="." instance=ExtResource("5_fg0nb")]

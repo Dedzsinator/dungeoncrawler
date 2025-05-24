@@ -85,3 +85,6 @@ func buy_item(iten_name: String, price: int) -> bool:
 		gold -= price
 		return true
 	return false
+
+func load_procedural_level():
+	get_tree().change_scene_to_file("res://Scenes/Levels/level_procedural.tscn")
