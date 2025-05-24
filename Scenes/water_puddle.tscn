@@ -1,18 +1,18 @@
-[gd_scene load_steps=3 format=3 uid="uid://b3hkjw4fldxei"]
+[gd_scene load_steps=3 format=3 uid="uid://dr3l055j78n8s"]
 
 [ext_resource type="Material" uid="uid://c3pf5qcb1dwxx" path="res://Materials/water_puddle_material.tres" id="1_2xfnf"]
+[ext_resource type="PackedScene" uid="uid://c11t6kxm67nnn" path="res://Models/PuddleModel.fbx" id="1_dl03k"]
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_h6r8a"]
-top_radius = 1.0
-bottom_radius = 1.0
-height = 0.05
-radial_segments = 32
-rings = 1
+[node name="PuddleModel" instance=ExtResource("1_dl03k")]
 
-[node name="WaterPuddle" type="Node3D"]
+[node name="Light" parent="." index="0"]
+transform = Transform3D(-29.0865, -77.1101, 56.6393, -5.5189, 60.4525, 79.4672, -95.5171, 19.9883, -21.8391, 0, 0, 0)
+light_color = Color(0.40238, 0.825118, 0.643918, 1)
+light_energy = 5.0
 
-[node name="PuddleMesh" type="MeshInstance3D" parent="."]
+[node name="Camera" parent="." index="1"]
+visible = false
+
+[node name="Cylinder" parent="." index="2"]
+transform = Transform3D(183.509, 0, 0, 0, -2.09078e-05, 10.5911, 0, -175.387, -1.26256e-06, 0, 0, 0)
 material_override = ExtResource("1_2xfnf")
-mesh = SubResource("CylinderMesh_h6r8a")
-skeleton = NodePath("../..")
-surface_material_override/0 = ExtResource("1_2xfnf")

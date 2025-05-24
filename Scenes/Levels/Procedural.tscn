@@ -1,9 +1,11 @@
-[gd_scene load_steps=6 format=3 uid="uid://dwr7ueersvhgi"]
+[gd_scene load_steps=8 format=3 uid="uid://dwr7ueersvhgi"]
 
 [ext_resource type="Script" uid="uid://drwv0jgwwyo8t" path="res://Scripts/Levels/dungeon.gd" id="1_m8h5k"]
 [ext_resource type="PackedScene" uid="uid://f4115ubn0p6r" path="res://Scenes/GUI/game_over_overlay.tscn" id="3_fg0nb"]
 [ext_resource type="PackedScene" uid="uid://bd3ylfofkux46" path="res://Scenes/GUI/gui.tscn" id="4_7xs4w"]
-[ext_resource type="PackedScene" uid="uid://bimreqya5oh2h" path="res://Scenes/world_environment.tscn" id="5_fg0nb"]
+[ext_resource type="PackedScene" uid="uid://ti52vj3ifdb3" path="res://Scenes/GUI/time_display.tscn" id="4_fg0nb"]
+[ext_resource type="Environment" uid="uid://d3hus1uxa6646" path="res://Models/sky_enviornment.tres" id="5_7xs4w"]
+[ext_resource type="Script" uid="uid://bt4iuirdhlk4q" path="res://Scripts/Environment/unified_enviornment.gd" id="6_7xs4w"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_1"]
 
@@ -32,6 +34,10 @@ navigation_mesh = SubResource("NavigationMesh_1")
 
 [node name="GUI" parent="." instance=ExtResource("4_7xs4w")]
 
+[node name="TimeDisplay" parent="." instance=ExtResource("4_fg0nb")]
+
 [node name="Items" type="Node3D" parent="."]
 
-[node name="WorldEnvironment" parent="." instance=ExtResource("5_fg0nb")]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = ExtResource("5_7xs4w")
+script = ExtResource("6_7xs4w")

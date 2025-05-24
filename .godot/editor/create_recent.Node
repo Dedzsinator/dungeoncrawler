@@ -1,3 +1,5 @@
+WorldEnvironment
+CanvasLayer
 MeshInstance3D
 FogVolume
 AudioStreamPlayer3D
@@ -10,6 +12,3 @@ Area3D
 Button
 Panel
 Sprite3D
-Sprite2D
-Control
-GridContainer
