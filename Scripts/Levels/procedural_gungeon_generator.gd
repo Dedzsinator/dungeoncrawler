@@ -109,6 +109,9 @@ var torch_container: Node3D
 var enemy_container: Node3D
 var puddle_container: Node3D
 var torch_scene: PackedScene
+var rtx_floor_material: Material
+var skybox_material: Material
+
 
 # Track occupied positions
 var occupied_positions: Array[Vector2i] = []
@@ -125,36 +128,249 @@ func load_scenes():
 	else:
 		print("Warning: torch.tscn not found")
 
-func load_rtx_materials():
-	print("Loading RTX materials...")
+func setup_skybox_shader():
+	print("Setting up skybox with sky shader...")
 	
-	# Try to load the RTX wall material
+	# Get or create environment - use a more robust approach
+	var environment: Environment
+	var world_env = get_tree().get_first_node_in_group("world_environment")
+	
+	if not world_env:
+		# Look for existing WorldEnvironment in the scene tree
+		world_env = get_tree().get_nodes_in_group("world_environment")
+		if world_env.size() > 0:
+			world_env = world_env[0]
+		else:
+			world_env = null
+	
+	if not world_env:
+		# Create new WorldEnvironment
+		world_env = WorldEnvironment.new()
+		world_env.name = "WorldEnvironment"
+		world_env.add_to_group("world_environment")
+		get_parent().add_child(world_env)
+		print("Created new WorldEnvironment")
+	
+	# Get or create environment
+	if world_env.environment:
+		environment = world_env.environment
+	else:
+		environment = Environment.new()
+		world_env.environment = environment
+		print("Created new Environment")
+	
+	# Apply sky shader - use load() instead of preload()
+	if ResourceLoader.exists("res://Shaders/sky.gdshader"):
+		var sky_material = ShaderMaterial.new()
+		var sky_shader = load("res://Shaders/sky.gdshader")
+		sky_material.shader = sky_shader
+		
+		# Set sky shader parameters
+		sky_material.set_shader_parameter("sky_color_top", Color(0.4, 0.6, 1.0))
+		sky_material.set_shader_parameter("sky_color_bottom", Color(0.8, 0.9, 1.0))
+		sky_material.set_shader_parameter("sun_color", Color(1.0, 0.9, 0.7))
+		sky_material.set_shader_parameter("cloud_density", 0.3)
+		sky_material.set_shader_parameter("sun_size", 0.05)
+		sky_material.set_shader_parameter("time_of_day", 0.5)
+		
+		# Create and apply sky
+		var sky = Sky.new()
+		sky.sky_material = sky_material
+		
+		environment.background_mode = Environment.BG_SKY
+		environment.sky = sky
+		
+		print("Sky shader applied successfully")
+	else:
+		create_fallback_sky(environment)
+
+func create_rtx_floor_material_from_shader() -> ShaderMaterial:
+	var shader_material = ShaderMaterial.new()
+	
+	if ResourceLoader.exists("res://Shaders/rtx_floor.gdshader"):
+		var shader = load("res://Shaders/rtx_floor.gdshader")
+		shader_material.shader = shader
+	else:
+		# Use wall shader for floors with different parameters
+		if ResourceLoader.exists("res://Shaders/rtx_wall.gdshader"):
+			var shader = load("res://Shaders/rtx_wall.gdshader")
+			shader_material.shader = shader
+		else:
+			print("Warning: No RTX shaders found!")
+			return null
+	
+	# Set shader parameters for floors
+	shader_material.set_shader_parameter("metallic", 0.0)
+	shader_material.set_shader_parameter("roughness", 0.8)
+	shader_material.set_shader_parameter("emission_strength", 0.0)
+	shader_material.set_shader_parameter("normal_strength", 0.5)
+	shader_material.set_shader_parameter("clearcoat", 0.1)
+	shader_material.set_shader_parameter("clearcoat_roughness", 0.4)
+	
+	return shader_material
+
+func create_rtx_wall_material_from_shader() -> ShaderMaterial:
+	var shader_material = ShaderMaterial.new()
+	
+	# Use load() instead of preload() for dynamic paths
+	if ResourceLoader.exists("res://Shaders/rtx_wall.gdshader"):
+		var shader = load("res://Shaders/rtx_wall.gdshader")
+		shader_material.shader = shader
+	else:
+		print("Warning: rtx_wall.gdshader not found!")
+		return null
+	
+	# Set shader parameters for walls
+	shader_material.set_shader_parameter("metallic", 0.1)
+	shader_material.set_shader_parameter("roughness", 0.7)
+	shader_material.set_shader_parameter("emission_strength", 0.0)
+	shader_material.set_shader_parameter("normal_strength", 1.0)
+	shader_material.set_shader_parameter("clearcoat", 0.3)
+	shader_material.set_shader_parameter("clearcoat_roughness", 0.2)
+	
+	# Load textures if available - use load() for dynamic paths
+	var wall_textures = [
+		"res://Textures/wall_albedo.png",
+		"res://Textures/stone_albedo.png",
+		"res://Assets/Textures/wall_diffuse.png"
+	]
+	
+	for texture_path in wall_textures:
+		if ResourceLoader.exists(texture_path):
+			var texture = load(texture_path)
+			shader_material.set_shader_parameter("albedo_texture", texture)
+			break
+	
+	return shader_material
+
+func load_rtx_materials():
+	print("Loading RTX materials and shaders...")
+	
+	# Load RTX wall material/shader
 	if ResourceLoader.exists("res://Materials/rtx_wall_material.tres"):
 		rtx_wall_material = preload("res://Materials/rtx_wall_material.tres")
 		print("RTX wall material loaded successfully")
-	elif ResourceLoader.exists("res://Materials/rtx_wall.res"):
-		rtx_wall_material = preload("res://Materials/rtx_wall_material.tres")
-		print("RTX wall material loaded successfully")
+	elif ResourceLoader.exists("res://Shaders/rtx_wall.gdshader"):
+		rtx_wall_material = create_rtx_wall_material_from_shader()
+		print("RTX wall material created from shader")
 	else:
-		print("Warning: RTX wall material not found at res://Materials/rtx_wall.tres or .res")
-		# Create a fallback RTX-style material
-		create_fallback_rtx_material()
+		print("Warning: RTX wall material/shader not found")
+		create_fallback_rtx_wall_material()
+	
+	# Load RTX floor material/shader - FIX: Check for floor material, not wall material
+	if ResourceLoader.exists("res://Materials/rtx_wall_material.tres"):
+		rtx_floor_material = preload("res://Materials/rtx_wall_material.tres")
+		print("RTX floor material loaded successfully")
+	elif ResourceLoader.exists("res://Shaders/rtx_floor.gdshader"):
+		rtx_floor_material = create_rtx_floor_material_from_shader()
+		print("RTX floor material created from shader")
+	else:
+		rtx_floor_material = rtx_wall_material # Use wall material as fallback
+	
+	# Setup skybox
+	setup_skybox_shader()
 
-func create_fallback_rtx_material():
+func create_fallback_sky(environment: Environment):
+	print("Creating fallback procedural sky...")
+	var sky = Sky.new()
+	var procedural_sky = ProceduralSkyMaterial.new()
+	procedural_sky.sky_top_color = Color(0.4, 0.6, 1.0)
+	procedural_sky.sky_horizon_color = Color(0.8, 0.9, 1.0)
+	procedural_sky.ground_bottom_color = Color(0.2, 0.2, 0.3)
+	procedural_sky.ground_horizon_color = Color(0.6, 0.6, 0.7)
+	sky.sky_material = procedural_sky
+	
+	environment.background_mode = Environment.BG_SKY
+	environment.sky = sky
+
+func create_fallback_rtx_wall_material():
 	print("Creating fallback RTX wall material...")
 	rtx_wall_material = StandardMaterial3D.new()
 	var mat = rtx_wall_material as StandardMaterial3D
 	
-	# RTX-style properties
+	# RTX-style properties for walls
 	mat.albedo_color = Color(0.7, 0.7, 0.8)
-	mat.metallic = 0.2
-	mat.roughness = 0.3
-	mat.clearcoat = 0.5
-	mat.clearcoat_roughness = 0.1
-	mat.normal_scale = 1.2
-	mat.flags_use_point_size = true
+	mat.metallic = 0.1
+	mat.roughness = 0.7
+	mat.clearcoat = 0.3
+	mat.clearcoat_roughness = 0.2
+	mat.normal_scale = 1.0
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	mat.specular_mode = BaseMaterial3D.SPECULAR_SCHLICK_GGX
+
+# Enhanced material application functions
+func apply_rtx_material_to_wall(wall_node: Node3D):
+	if not rtx_wall_material:
+		return
 	
-	print("Fallback RTX wall material created")
+	var mesh_instances = find_mesh_instances_recursive(wall_node)
+	for mesh_instance in mesh_instances:
+		if mesh_instance is MeshInstance3D:
+			mesh_instance.material_override = rtx_wall_material
+			mesh_instance.add_to_group("rtx_geometry")
+			print("Applied RTX wall material to mesh")
+
+func apply_rtx_material_to_floor(floor_node: Node3D):
+	if not rtx_floor_material:
+		return
+	
+	var mesh_instances = find_mesh_instances_recursive(floor_node)
+	for mesh_instance in mesh_instances:
+		if mesh_instance is MeshInstance3D:
+			mesh_instance.material_override = rtx_floor_material
+			mesh_instance.add_to_group("rtx_geometry")
+
+func create_floor_tile(position: Vector3):
+	var floor_asset = floor_assets[randi() % floor_assets.size()]
+	if ResourceLoader.exists(floor_asset):
+		var floor_scene = load(floor_asset)
+		var floor_instance = floor_scene.instantiate()
+		floor_instance.position = position
+		
+		# Apply RTX material to floor
+		apply_rtx_material_to_floor(floor_instance)
+		
+		# Add collision to floor
+		add_collision_to_mesh(floor_instance)
+		floor_instance.add_to_group("floors")
+		floor_container.add_child(floor_instance)
+
+func create_foundation_tile(position: Vector3):
+	var floor_asset = floor_assets[randi() % floor_assets.size()]
+	if ResourceLoader.exists(floor_asset):
+		var foundation_scene = load(floor_asset)
+		var foundation_instance = foundation_scene.instantiate()
+		foundation_instance.position = position
+		
+		# Apply RTX material to foundation
+		apply_rtx_material_to_floor(foundation_instance)
+		
+		# Add collision to foundation
+		add_collision_to_mesh(foundation_instance)
+		foundation_instance.add_to_group("foundation")
+		floor_container.add_child(foundation_instance)
+
+func create_door_tile(position: Vector3, grid_x: int, grid_y: int):
+	var door_type = wall_types[grid_x][grid_y]
+	var door_asset = wall_assets["door"][0]
+	
+	if ResourceLoader.exists(door_asset):
+		var door_scene = load(door_asset)
+		var door_instance = door_scene.instantiate()
+		door_instance.position = position
+		
+		# Apply appropriate rotation for door
+		var rotation = get_door_rotation(door_type)
+		door_instance.rotation.y = rotation
+		
+		# Apply RTX wall material to door
+		apply_rtx_material_to_wall(door_instance)
+		
+		# Add collision to door
+		add_collision_to_mesh(door_instance)
+		door_instance.add_to_group("doors")
+		wall_container.add_child(door_instance)
+		print("Created door tile at: ", position)
 
 func generate_dungeon():
 	print("Generating enhanced procedural dungeon...")
@@ -440,17 +656,6 @@ func create_enhanced_wall_tile(position: Vector3, grid_x: int, grid_y: int):
 		if wall_type in [WallType.CORNER_NE, WallType.CORNER_SE, WallType.CORNER_SW, WallType.CORNER_NW]:
 			print("Corner at (", grid_x, ",", grid_y, ") type:", wall_type, " rotation:", rad_to_deg(rotation), "°")
 
-func apply_rtx_material_to_wall(wall_node: Node3D):
-	if not rtx_wall_material:
-		return
-	
-	# Find all MeshInstance3D nodes and apply the RTX material
-	var mesh_instances = find_mesh_instances_recursive(wall_node)
-	for mesh_instance in mesh_instances:
-		if mesh_instance is MeshInstance3D:
-			mesh_instance.material_override = rtx_wall_material
-			print("Applied RTX material to wall mesh")
-
 func determine_wall_type(x: int, y: int) -> WallType:
 	# Check neighboring floors in cardinal directions
 	var has_floor_north = is_valid_position(Vector2i(x, y - 1)) and is_floor_or_corridor(x, y - 1)
@@ -643,40 +848,6 @@ func instantiate_geometry():
 				CellType.DOOR:
 					create_door_tile(world_pos, x, y)
 
-func create_floor_tile(position: Vector3):
-	var floor_asset = floor_assets[randi() % floor_assets.size()]
-	if ResourceLoader.exists(floor_asset):
-		var floor_scene = load(floor_asset)
-		var floor_instance = floor_scene.instantiate()
-		floor_instance.position = position
-		
-		# Add collision to floor
-		add_collision_to_mesh(floor_instance)
-		floor_instance.add_to_group("floors")
-		floor_container.add_child(floor_instance)
-
-func create_door_tile(position: Vector3, grid_x: int, grid_y: int):
-	var door_type = wall_types[grid_x][grid_y]
-	var door_asset = wall_assets["door"][0]
-	
-	if ResourceLoader.exists(door_asset):
-		var door_scene = load(door_asset)
-		var door_instance = door_scene.instantiate()
-		door_instance.position = position
-		
-		# Apply appropriate rotation for door
-		var rotation = get_door_rotation(door_type)
-		door_instance.rotation.y = rotation
-		
-		# Apply RTX wall material to door as well
-		apply_rtx_material_to_wall(door_instance)
-		
-		# Add collision to door (but allow passage through the opening)
-		add_collision_to_mesh(door_instance)
-		door_instance.add_to_group("doors")
-		wall_container.add_child(door_instance)
-		print("Created door tile at: ", position)
-
 func get_door_rotation(door_type: WallType) -> float:
 	match door_type:
 		WallType.DOOR_NS:
@@ -697,18 +868,6 @@ func add_foundation_floors():
 			if grid[x][y] == CellType.WALL or grid[x][y] == CellType.DOOR:
 				var foundation_pos = Vector3(x * cell_size, 0, y * cell_size)
 				create_foundation_tile(foundation_pos)
-
-func create_foundation_tile(position: Vector3):
-	var floor_asset = floor_assets[randi() % floor_assets.size()]
-	if ResourceLoader.exists(floor_asset):
-		var foundation_scene = load(floor_asset)
-		var foundation_instance = foundation_scene.instantiate()
-		foundation_instance.position = position
-		
-		# Add collision to foundation
-		add_collision_to_mesh(foundation_instance)
-		foundation_instance.add_to_group("foundation")
-		floor_container.add_child(foundation_instance)
 
 func add_enhanced_lighting():
 	print("Adding enhanced torch lighting...")

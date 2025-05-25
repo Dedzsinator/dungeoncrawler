@@ -11,11 +11,20 @@
 
 [node name="ProceduralLevel" type="Node3D"]
 script = ExtResource("1_m8h5k")
+enable_rtx = null
+enable_water_puddles = null
 puddle_density = 0.3
 max_puddles = 15
+enable_daylight_cycle = null
+start_at_dawn = null
 dungeon_width = 30
 dungeon_height = 30
+room_min_size = null
+room_max_size = null
 max_rooms = 12
+rock_density = null
+max_rocks_per_room = null
+enable_rocks = null
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(-0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, 0.75, -0.433013, 0, 8, 0)

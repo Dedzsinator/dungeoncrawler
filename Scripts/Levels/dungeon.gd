@@ -327,34 +327,6 @@ func spawn_monster_in_room(room: Rect2i, monsters_container: Node3D):
 	monsters_container.add_child(monster)
 	print("Monster spawned at: ", monster.position)
 
-func setup_rtx():
-	print("Setting up RTX for procedural level...")
-	
-	# Create RTX manager
-	if ResourceLoader.exists("res://Scripts/rtx_manager.gd"):
-		var rtx_manager_script = preload("res://Scripts/rtx_manager.gd")
-		rtx_manager = Node3D.new()
-		rtx_manager.set_script(rtx_manager_script)
-		rtx_manager.name = "RTXManager"
-		add_child(rtx_manager)
-		print("RTX Manager loaded successfully")
-	else:
-		print("Warning: RTX manager script not found, creating basic RTX setup")
-		create_basic_rtx_setup()
-	
-	# Tag geometry for RTX
-	tag_geometry_for_rtx()
-	
-	# Setup player RTX armor
-	if player and player.has_method("setup_rtx_armor"):
-		player.setup_rtx_armor()
-	
-	if daylight_cycle:
-		daylight_cycle.connect("time_changed", _on_rtx_time_changed)
-		print("RTX connected to daylight cycle")
-
-	print("RTX setup complete!")
-	
 func update_water_reflections_for_time(is_night: bool):
 	var puddles_node = get_node_or_null("WaterPuddles")
 	if not puddles_node:
@@ -518,7 +490,100 @@ func create_simple_puddle() -> MeshInstance3D:
 	
 	return mesh_instance
 
-# Optional: Add method to regenerate dungeon
+func setup_rtx():
+	print("Setting up RTX for procedural level...")
+	
+	# Create RTX manager
+	if ResourceLoader.exists("res://Scripts/rtx_manager.gd"):
+		var rtx_manager_script = preload("res://Scripts/rtx_manager.gd")
+		rtx_manager = Node3D.new()
+		rtx_manager.set_script(rtx_manager_script)
+		rtx_manager.name = "RTXManager"
+		add_child(rtx_manager)
+		print("RTX Manager loaded successfully")
+	else:
+		print("Warning: RTX manager script not found, creating basic RTX setup")
+		create_basic_rtx_setup()
+	
+	# Apply RTX materials to generated dungeon
+	apply_rtx_to_dungeon()
+	
+	# Tag geometry for RTX
+	tag_geometry_for_rtx()
+	
+	# Setup enhanced environment for RTX
+	setup_rtx_environment()
+	
+	# Setup player RTX armor
+	if player and player.has_method("setup_rtx_armor"):
+		player.setup_rtx_armor()
+	
+	if daylight_cycle:
+		daylight_cycle.connect("time_changed", _on_rtx_time_changed)
+		print("RTX connected to daylight cycle")
+
+	print("RTX setup complete!")
+
+func apply_rtx_to_dungeon():
+	print("Applying RTX materials to dungeon geometry...")
+	
+	if not dungeon_generator:
+		return
+	
+	# Apply RTX materials to walls
+	var walls_node = dungeon_generator.get_node_or_null("Walls")
+	if walls_node:
+		for wall in walls_node.get_children():
+			if dungeon_generator.has_method("apply_rtx_material_to_wall"):
+				dungeon_generator.apply_rtx_material_to_wall(wall)
+	
+	# Apply RTX materials to floors
+	var floors_node = dungeon_generator.get_node_or_null("Floors")
+	if floors_node:
+		for floor in floors_node.get_children():
+			if dungeon_generator.has_method("apply_rtx_material_to_floor"):
+				dungeon_generator.apply_rtx_material_to_floor(floor)
+	
+	print("RTX materials applied to dungeon")
+
+func setup_rtx_environment():
+	print("Setting up RTX environment...")
+	
+	var environment = get_viewport().get_camera_3d().environment
+	if not environment:
+		var world_env = get_node_or_null("WorldEnvironment")
+		if not world_env:
+			world_env = WorldEnvironment.new()
+			world_env.name = "WorldEnvironment"
+			add_child(world_env)
+		
+		environment = Environment.new()
+		world_env.environment = environment
+	
+	# Configure RTX-friendly environment settings
+	environment.ssao_enabled = true
+	environment.ssao_radius = 1.0
+	environment.ssao_intensity = 0.8
+	
+	environment.ssr_enabled = true
+	environment.ssr_max_steps = 64
+	environment.ssr_fade_in = 0.15
+	environment.ssr_fade_out = 2.0
+	
+	environment.sdfgi_enabled = true
+	environment.sdfgi_use_occlusion = true
+	environment.sdfgi_bounce_feedback = 0.5
+	
+	environment.glow_enabled = true
+	environment.glow_intensity = 0.5
+	environment.glow_bloom = 0.1
+	
+	# Enhanced tone mapping
+	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
+	environment.tonemap_exposure = 1.0
+	
+	print("RTX environment configured")
+
 func regenerate_dungeon():
 	print("Regenerating dungeon...")
 	
