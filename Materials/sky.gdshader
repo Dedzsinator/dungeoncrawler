@@ -12,7 +12,7 @@ void sky() {
 	vec3 absvec = abs(EYEDIR);
 	float ma = max(max(absvec.x, absvec.y), absvec.z);
 	vec3 dir = EYEDIR / (ma + 0.0001);
-	
+
 	if (EYEDIR.x >= ma) {
 		COLOR = texture(left, dir.zy * vec2(-0.5, -0.5) - 0.5).rgb;
 	}

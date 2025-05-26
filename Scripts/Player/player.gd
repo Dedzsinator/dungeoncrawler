@@ -40,12 +40,30 @@ var just_hit: bool
 var rtx_armor_material: ShaderMaterial
 var original_armor_material: Material
 
+var is_first_person: bool = false
+var camera_transition_speed: float = 3.0
+var first_person_offset: Vector3 = Vector3(0, 1.7, 0) # Head height
+var third_person_offset: Vector3 = Vector3(0, 1.5, -4) # Default third-person position
+var original_camera_position: Vector3
+var target_camera_position: Vector3
+var is_transitioning: bool = false
+var original_camera_parent: Node3D
+
+@onready var camera: Camera3D = get_node("CamRoot/H/V/Camera3D")
+@onready var spring_arm: SpringArm3D = get_node("CamRoot/H/V")
+@onready var cam_root_v: Node3D = get_node("CamRoot/H/V")
+
 func _ready() -> void:
 	direction = Vector3.BACK.rotated(Vector3.UP, cam_root_h.global_transform.basis.get_euler().y)
 	GameManager.level_up.connect(Callable(self, "level_up"))
 
 	if enable_rtx_armor:
 		setup_rtx_armor()
+	
+	# Store original camera position and parent
+	original_camera_position = camera.position
+	target_camera_position = original_camera_position
+	original_camera_parent = camera.get_parent()
 
 func setup_rtx_armor():
 	print("Setting up RTX armor for player...")
@@ -210,7 +228,6 @@ func restore_original_armor():
 	
 	print("Restored original armor materials")
 
-
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		aim_turn = - event.relative.x * 0.015
@@ -219,12 +236,70 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_right") and Input.is_action_pressed("ui_select"):
 		toggle_rtx_armor()
 		print("RTX Armor toggled: ", enable_rtx_armor)
+	
+	# Toggle first-person mode with "V" key
+	if event.is_action_pressed("ui_accept"): # This is typically "V" key in Godot's default input map
+		toggle_first_person_mode()
 
 func attack1() -> void:
 	if idle_node_name in playback.get_current_node() or walk_node_name in playback.get_current_node() or run_node_name in playback.get_current_node():
 		if Input.is_action_pressed("attack"):
 			if !is_attacking:
 				playback.travel(attack1_node_name)
+
+func toggle_first_person_mode():
+	if is_transitioning:
+		return
+	
+	is_first_person = !is_first_person
+	is_transitioning = true
+	
+	if is_first_person:
+		# Switch to first-person - reparent camera directly to cam_root_v (bypass spring arm)
+		var cam_v_node = get_node("CamRoot/H/V")
+		camera.reparent(cam_v_node.get_parent()) # Move to V's parent (H node)
+		camera.position = first_person_offset
+		camera.rotation = Vector3.ZERO
+		
+		# Disable spring arm
+		if spring_arm:
+			spring_arm.visible = false
+		
+		# Hide the player mesh in first-person to avoid seeing inside the model
+		player_mesh.visible = false
+		print("Switched to first-person mode")
+		is_transitioning = false # No animation needed
+	else:
+		# Switch back to third-person - reparent camera back to spring arm
+		camera.reparent(original_camera_parent)
+		camera.position = Vector3.ZERO # Reset relative to spring arm
+		camera.rotation = Vector3.ZERO
+		
+		# Re-enable spring arm
+		if spring_arm:
+			spring_arm.visible = true
+			spring_arm.spring_length = 4.0
+		
+		player_mesh.visible = true
+		print("Switched to third-person mode")
+		is_transitioning = false # No animation needed
+
+func animate_camera_transition():
+	if is_first_person:
+		# Instant switch for first-person
+		is_transitioning = false
+		return
+	
+	var tween = get_tree().create_tween()
+	tween.set_ease(Tween.EASE_OUT)
+	tween.set_trans(Tween.TRANS_CUBIC)
+	
+	# Only animate for third-person transitions
+	tween.tween_property(camera, "position", Vector3.ZERO, 1.0 / camera_transition_speed)
+	if spring_arm:
+		tween.parallel().tween_property(spring_arm, "spring_length", 4.0, 1.0 / camera_transition_speed)
+	
+	tween.tween_callback(func(): is_transitioning = false)
 
 func _physics_process(delta: float) -> void:
 	var on_floor = is_on_floor()
@@ -263,10 +338,13 @@ func _physics_process(delta: float) -> void:
 			$VFX_Puff_Run.emitting = true
 		else:
 			$VFX_Puff_Run.emitting = false
-		if Input.is_action_pressed("aim"):
+		
+		# Adjust player mesh rotation behavior based on camera mode
+		if Input.is_action_pressed("aim") or is_first_person:
 			player_mesh.rotation.y = lerp_angle(player_mesh.rotation.y, cam_root_h.rotation.y, angular_acceleration * delta)
 		else:
 			player_mesh.rotation.y = lerp_angle(player_mesh.rotation.y, atan2(direction.x, direction.z) - rotation.y, angular_acceleration * delta)
+		
 		if is_attacking:
 			horizontal_velocity = horizontal_velocity.lerp(direction.normalized() * 0.01, acceleration * delta)
 		else:
@@ -275,6 +353,7 @@ func _physics_process(delta: float) -> void:
 		velocity.y = vertical_velocity.y
 		velocity.z = horizontal_velocity.z + vertical_velocity.z
 		move_and_slide()
+	
 	animation_tree["parameters/conditions/is_on_floor"] = on_floor
 	animation_tree["parameters/conditions/is_in_air"] = !on_floor
 	animation_tree["parameters/conditions/is_walking"] = is_walking
@@ -282,7 +361,7 @@ func _physics_process(delta: float) -> void:
 	animation_tree["parameters/conditions/is_running"] = is_running
 	animation_tree["parameters/conditions/is_not_running"] = !is_running
 	animation_tree["parameters/conditions/is_dying"] = is_dying
-	
+
 func die() -> void:
 	await get_tree().create_timer(1).timeout
 	get_node("../GameOverOverlay").game_over()
