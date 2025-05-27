@@ -1,4 +1,3 @@
-res://Scripts/Player/player.gd
 res://Scenes/Objects/torch.tscn
 res://Assets/default.tres
 res://Scenes/GUI/Inventory/Resources/iron_sword.tres
@@ -14,4 +13,3 @@ res://Materials/sky.gdshader
 res://Scenes/Player/player.tscn
 res://Scenes/GUI/time_display.tscn
 res://Scenes/Levels/Procedural.tscn
-res://Scripts/Levels/procedural_gungeon_generator.gd
